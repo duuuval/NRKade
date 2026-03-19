@@ -75,15 +75,15 @@
   }
 
   h1 {
-    font-family: 'Boogaloo', cursive;
-    font-size: clamp(44px, 9vw, 96px);
-    letter-spacing: 4px;
-    line-height: 0.95;
-    background: linear-gradient(135deg, var(--accent1) 0%, var(--accent2) 55%, #ff8c00 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    filter: drop-shadow(0 0 20px rgba(255,80,0,0.5));
+    margin: 0;
+    line-height: 1;
+  }
+  h1 img {
+    display: block;
+    max-height: clamp(60px, 12vw, 120px);
+    width: auto;
+    max-width: 90vw;
+    filter: drop-shadow(0 0 18px rgba(255,80,0,0.55)) drop-shadow(0 0 6px rgba(255,160,0,0.4));
   }
 
   .header-sub {
@@ -299,8 +299,8 @@
 
 <header>
   <div class="arcade-badge">🕹️ Est. 2026</div>
-  <h1>NRKade</h1>
-  <div class="header-sub">Built by <span>Nolan &amp; Dad</span> — one game at a time</div>
+  <h1><img src="/assets/logo.png" alt="NRKade"></h1>
+  <div class="header-sub">Built by <span>Dad &amp; [Your Son's Name]</span> — one game at a time</div>
 </header>
 
 <div class="marquee-wrap">
