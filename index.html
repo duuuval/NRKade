@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NRKade — Arcade</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;700;900&display=swap');
+
+  :root {
+    --bg:        #0d0d18;
+    --bg2:       #13131f;
+    --panel:     #1a1a2e;
+    --accent1:   #ff3c3c;
+    --accent2:   #ffdd00;
+    --accent3:   #00e5ff;
+    --accent4:   #b94fff;
+    --text:      #f0f0f8;
+    --subtext:   #8888aa;
+    --border:    rgba(255,255,255,0.07);
+    --glow1:     rgba(255,60,60,0.35);
+    --glow3:     rgba(0,229,255,0.25);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Nunito', system-ui, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── SCANLINE OVERLAY ── */
+  body::before {
+    content:'';
+    position:fixed; inset:0; z-index:999; pointer-events:none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,0,0,0.07) 3px,
+      rgba(0,0,0,0.07) 4px
+    );
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    padding: 40px 24px 24px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    background: radial-gradient(ellipse at 50% 0%, rgba(185,79,255,0.12) 0%, transparent 65%);
+    overflow: hidden;
+  }
+
+  /* neon grid floor in header */
+  header::after {
+    content:'';
+    position:absolute; bottom:0; left:0; right:0; height:60px; pointer-events:none;
+    background:
+      linear-gradient(to right, transparent 0%, rgba(185,79,255,0.06) 50%, transparent 100%);
+  }
+
+  .arcade-badge {
+    display: inline-block;
+    font-family: 'Boogaloo', cursive;
+    font-size: clamp(13px, 2vw, 16px);
+    letter-spacing: 6px;
+    color: var(--accent4);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    text-shadow: 0 0 16px var(--accent4);
+  }
+
+  h1 {
+    font-family: 'Boogaloo', cursive;
+    font-size: clamp(44px, 9vw, 96px);
+    letter-spacing: 4px;
+    line-height: 0.95;
+    background: linear-gradient(135deg, var(--accent1) 0%, var(--accent2) 55%, #ff8c00 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 20px rgba(255,80,0,0.5));
+  }
+
+  .header-sub {
+    margin-top: 12px;
+    font-size: clamp(13px, 2vw, 16px);
+    color: var(--subtext);
+    letter-spacing: 2px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .header-sub span {
+    color: var(--accent3);
+    text-shadow: 0 0 12px var(--accent3);
+  }
+
+  /* ── MAIN CONTENT ── */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  .section-title {
+    font-family: 'Boogaloo', cursive;
+    font-size: clamp(18px, 3vw, 26px);
+    letter-spacing: 4px;
+    color: var(--subtext);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-title::after {
+    content:'';
+    flex:1;
+    height:1px;
+    background: var(--border);
+  }
+
+  /* ── GAME GRID ── */
+  .game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+  }
+
+  /* ── GAME CARD ── */
+  .game-card {
+    position: relative;
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    text-decoration: none;
+    display: block;
+  }
+  .game-card:hover {
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px var(--card-glow, rgba(255,60,60,0.2));
+    border-color: var(--card-color, var(--accent1));
+  }
+
+  /* card thumbnail area */
+  .card-thumb {
+    width:100%;
+    aspect-ratio: 3/2;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    overflow:hidden;
+  }
+
+  /* animated arena thumbnail for Destruction Derby */
+  .thumb-derby {
+    background: radial-gradient(ellipse at 50% 50%, #5a3010 0%, #3a1e08 60%, #1e0d02 100%);
+  }
+  .thumb-derby canvas {
+    width:100%; height:100%;
+    opacity:0.9;
+  }
+
+  /* coming-soon card style */
+  .card-coming {
+    opacity: 0.45;
+    cursor: default;
+    pointer-events: none;
+  }
+  .card-coming:hover { transform:none; box-shadow:none; border-color: var(--border); }
+
+  .thumb-coming {
+    background: var(--bg2);
+    font-size: 56px;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .thumb-coming .coming-label {
+    font-family: 'Boogaloo', cursive;
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--subtext);
+    text-transform: uppercase;
+  }
+
+  /* card info */
+  .card-info {
+    padding: 16px 18px 18px;
+  }
+  .card-title {
+    font-family: 'Boogaloo', cursive;
+    font-size: 24px;
+    letter-spacing: 2px;
+    line-height: 1.1;
+    margin-bottom: 5px;
+  }
+  .card-desc {
+    font-size: 13px;
+    color: var(--subtext);
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+  .card-tags {
+    display:flex; gap:6px; flex-wrap:wrap;
+  }
+  .tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid;
+  }
+
+  /* PLAY button */
+  .card-play {
+    position:absolute;
+    top:12px; right:12px;
+    background: var(--card-color, var(--accent1));
+    color: #000;
+    font-family: 'Boogaloo', cursive;
+    font-size: 13px;
+    letter-spacing: 2px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    opacity:0;
+    transform: translateY(-4px);
+    transition: opacity 0.15s, transform 0.15s;
+    pointer-events:none;
+  }
+  .game-card:hover .card-play {
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  /* ── DESTRUCTION DERBY SPECIFIC ── */
+  .card-destruction-derby {
+    --card-color: #ff3c3c;
+    --card-glow: rgba(255,60,60,0.25);
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align:center;
+    padding: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--subtext);
+    letter-spacing: 2px;
+  }
+  footer strong {
+    color: var(--accent2);
+    font-weight:900;
+  }
+
+  /* ── MARQUEE ── */
+  .marquee-wrap {
+    overflow:hidden;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    padding: 10px 0;
+    margin: 0 0 48px;
+  }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .marquee-inner {
+    display:inline-flex;
+    gap: 48px;
+    white-space:nowrap;
+    animation: marquee 24s linear infinite;
+    font-family: 'Boogaloo', cursive;
+    font-size: 14px;
+    letter-spacing: 3px;
+    color: var(--subtext);
+    text-transform: uppercase;
+  }
+  .marquee-inner span { color: var(--accent2); }
+
+  /* ── LIVE PREVIEW CANVAS IN CARD ── */
+  #previewCanvas {
+    width:100%;
+    height:100%;
+    display:block;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="arcade-badge">🕹️ Est. 2026</div>
+  <h1>NRKade</h1>
+  <div class="header-sub">Built by <span>Dad &amp; [Your Son's Name]</span> — one game at a time</div>
+</header>
+
+<div class="marquee-wrap">
+  <div class="marquee-inner">
+    <span>NEW!</span> DESTRUCTION DERBY IS LIVE &nbsp;·&nbsp;
+    <span>🛻</span> MONSTER TRUCK ARENA &nbsp;·&nbsp;
+    <span>🚀</span> SPACE BATTLE MODE &nbsp;·&nbsp;
+    <span>💀</span> 3 DIFFICULTY LEVELS &nbsp;·&nbsp;
+    <span>🔥</span> BOOST YOUR WAY TO VICTORY &nbsp;·&nbsp;
+    <span>NEW!</span> DESTRUCTION DERBY IS LIVE &nbsp;·&nbsp;
+    <span>🛻</span> MONSTER TRUCK ARENA &nbsp;·&nbsp;
+    <span>🚀</span> SPACE BATTLE MODE &nbsp;·&nbsp;
+    <span>💀</span> 3 DIFFICULTY LEVELS &nbsp;·&nbsp;
+    <span>🔥</span> BOOST YOUR WAY TO VICTORY &nbsp;·&nbsp;
+  </div>
+</div>
+
+<main>
+  <div class="section-title">🎮 Games</div>
+
+  <div class="game-grid">
+
+    <!-- DESTRUCTION DERBY -->
+    <a href="skull-smash.html" class="game-card card-destruction-derby">
+      <div class="card-thumb thumb-derby">
+        <canvas id="previewCanvas"></canvas>
+      </div>
+      <div class="card-play">▶ PLAY</div>
+      <div class="card-info">
+        <div class="card-title" style="color:#ff3c3c;">💀 DESTRUCTION DERBY</div>
+        <div class="card-desc">Monster trucks and spaceships battle it out. Ram your opponent 7 times to win — dirt arena or deep space.</div>
+        <div class="card-tags">
+          <span class="tag" style="color:#ff3c3c;border-color:#ff3c3c44;background:rgba(255,60,60,0.08);">Action</span>
+          <span class="tag" style="color:#ffdd00;border-color:#ffdd0044;background:rgba(255,221,0,0.08);">1 Player</span>
+          <span class="tag" style="color:#00e5ff;border-color:#00e5ff44;background:rgba(0,229,255,0.08);">Mobile</span>
+        </div>
+      </div>
+    </a>
+
+    <!-- COMING SOON SLOTS -->
+    <div class="game-card card-coming">
+      <div class="card-thumb thumb-coming">
+        <div>🎯</div>
+        <div class="coming-label">Coming Soon</div>
+      </div>
+      <div class="card-info">
+        <div class="card-title" style="color:var(--subtext);">??? GAME 2</div>
+        <div class="card-desc">The next creation is in the works...</div>
+        <div class="card-tags">
+          <span class="tag" style="color:var(--subtext);border-color:rgba(136,136,170,0.2);background:rgba(136,136,170,0.05);">Mystery</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="game-card card-coming">
+      <div class="card-thumb thumb-coming">
+        <div>🌟</div>
+        <div class="coming-label">Coming Soon</div>
+      </div>
+      <div class="card-info">
+        <div class="card-title" style="color:var(--subtext);">??? GAME 3</div>
+        <div class="card-desc">Something epic is being designed...</div>
+        <div class="card-tags">
+          <span class="tag" style="color:var(--subtext);border-color:rgba(136,136,170,0.2);background:rgba(136,136,170,0.05);">Mystery</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <strong>NRKade</strong> &nbsp;·&nbsp; All games handcrafted with AI assistance
+</footer>
+
+<script>
+// ── ANIMATED PREVIEW: detailed dirt arena + full-fidelity trucks ────────────
+(function() {
+  const canvas = document.getElementById('previewCanvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  let dirtGrad = null;
+  let angle1 = 0, angle2 = Math.PI;
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width  = rect.width  * devicePixelRatio;
+    canvas.height = rect.height * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    dirtGrad = null; // invalidate gradient on resize
+  }
+  resize();
+  new ResizeObserver(resize).observe(canvas);
+
+  // Full player truck draw — scaled by `s` (scale factor vs game's hw=22,hh=30)
+  function drawPlayerTruck(s) {
+    const hw = 22*s, hh = 30*s;
+    // Tires
+    ctx.fillStyle='#1a1a1a';
+    ctx.beginPath();ctx.roundRect(-hw-6*s,-hh+4*s,11*s,15*s,3*s);ctx.fill();
+    ctx.beginPath();ctx.roundRect(hw-5*s,-hh+4*s,11*s,15*s,3*s);ctx.fill();
+    ctx.beginPath();ctx.roundRect(-hw-6*s,hh-19*s,11*s,15*s,3*s);ctx.fill();
+    ctx.beginPath();ctx.roundRect(hw-5*s,hh-19*s,11*s,15*s,3*s);ctx.fill();
+    ctx.fillStyle='#2d2d2d';
+    ctx.beginPath();ctx.roundRect(-hw-4*s,-hh+6*s,7*s,11*s,2*s);ctx.fill();
+    ctx.beginPath();ctx.roundRect(hw-3*s,-hh+6*s,7*s,11*s,2*s);ctx.fill();
+    ctx.beginPath();ctx.roundRect(-hw-4*s,hh-17*s,7*s,11*s,2*s);ctx.fill();
+    ctx.beginPath();ctx.roundRect(hw-3*s,hh-17*s,7*s,11*s,2*s);ctx.fill();
+    // Body
+    ctx.fillStyle='#cc1111';ctx.beginPath();ctx.roundRect(-hw,-hh,hw*2,hh*2,8*s);ctx.fill();
+    ctx.fillStyle='#e01a1a';ctx.beginPath();ctx.roundRect(-hw+3*s,-hh+3*s,(hw-3*s)*2,(hh-3*s)*2,6*s);ctx.fill();
+    // Flames
+    const fc=['#ff6600','#ffaa00','#ffdd00'];
+    for(let c=0;c<3;c++){
+      ctx.fillStyle=fc[c];
+      for(let i=0;i<5;i++){
+        const fx=(-16+i*8+c*1.5)*s;
+        ctx.beginPath();
+        ctx.moveTo(fx,-hh+4*s+c*2*s);
+        ctx.quadraticCurveTo(fx+3*s,-hh-5*s+c*3*s,fx+5*s,-hh+4*s+c*2*s);
+        ctx.lineTo(fx+5*s,-hh+15*s);ctx.lineTo(fx,-hh+15*s);ctx.closePath();ctx.fill();
+      }
+    }
+    // Cab
+    ctx.fillStyle='#990000';ctx.beginPath();ctx.roundRect(-14*s,2*s,28*s,22*s,5*s);ctx.fill();
+    ctx.fillStyle='#001133';ctx.globalAlpha=0.88;ctx.beginPath();ctx.roundRect(-11*s,4*s,22*s,17*s,4*s);ctx.fill();
+    ctx.fillStyle='white';ctx.globalAlpha=0.12;
+    ctx.beginPath();ctx.moveTo(-10*s,5*s);ctx.lineTo(-2*s,5*s);ctx.lineTo(-7*s,13*s);ctx.closePath();ctx.fill();
+    ctx.globalAlpha=1;
+    // Headlights
+    ctx.fillStyle='#ffee88';ctx.shadowColor='#ffee88';ctx.shadowBlur=6*s;
+    ctx.beginPath();ctx.roundRect(-hw+2*s,-hh+2*s,9*s,5*s,2*s);ctx.fill();
+    ctx.beginPath();ctx.roundRect(hw-11*s,-hh+2*s,9*s,5*s,2*s);ctx.fill();
+    ctx.shadowBlur=0;
+    // Taillights
+    ctx.fillStyle='#ff2200';
+    ctx.beginPath();ctx.roundRect(-hw+2*s,hh-7*s,9*s,5*s,2*s);ctx.fill();
+    ctx.beginPath();ctx.roundRect(hw-11*s,hh-7*s,9*s,5*s,2*s);ctx.fill();
+    // Badge
+    ctx.fillStyle='#cc1111';ctx.strokeStyle='#ffaa00';ctx.lineWidth=2*s;
+    ctx.shadowColor='#ffaa00';ctx.shadowBlur=4*s;
+    ctx.beginPath();ctx.arc(0,hh-10*s,8*s,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+    ctx.fillStyle='#ffdd00';ctx.font=`bold ${11*s}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('1',0,hh-9*s);
+  }
+
+  function drawAITruck(s) {
+    const hw=22*s, hh=30*s;
+    // Tires
+    ctx.fillStyle='#0a0a0a';
+    ctx.beginPath();ctx.roundRect(-hw-6*s,-hh+4*s,11*s,15*s,3*s);ctx.fill();
+    ctx.beginPath();ctx.roundRect(hw-5*s,-hh+4*s,11*s,15*s,3*s);ctx.fill();
+    ctx.beginPath();ctx.roundRect(-hw-6*s,hh-19*s,11*s,15*s,3*s);ctx.fill();
+    ctx.beginPath();ctx.roundRect(hw-5*s,hh-19*s,11*s,15*s,3*s);ctx.fill();
+    ctx.fillStyle='#1a1a1a';
+    ctx.beginPath();ctx.roundRect(-hw-4*s,-hh+6*s,7*s,11*s,2*s);ctx.fill();
+    ctx.beginPath();ctx.roundRect(hw-3*s,-hh+6*s,7*s,11*s,2*s);ctx.fill();
+    ctx.beginPath();ctx.roundRect(-hw-4*s,hh-17*s,7*s,11*s,2*s);ctx.fill();
+    ctx.beginPath();ctx.roundRect(hw-3*s,hh-17*s,7*s,11*s,2*s);ctx.fill();
+    // Body
+    ctx.fillStyle='#1a1a2e';ctx.beginPath();ctx.roundRect(-hw,-hh,hw*2,hh*2,8*s);ctx.fill();
+    ctx.fillStyle='#222244';ctx.beginPath();ctx.roundRect(-hw+3*s,-hh+3*s,(hw-3*s)*2,(hh-3*s)*2,6*s);ctx.fill();
+    // Bone spikes
+    ctx.fillStyle='#cccccc';
+    for(const sy of [-14,-1,12]){
+      ctx.beginPath();ctx.roundRect(-hw-s,sy*s,4*s,7*s,s);ctx.fill();
+      ctx.beginPath();ctx.roundRect(hw-3*s,sy*s,4*s,7*s,s);ctx.fill();
+    }
+    // Hood skull
+    ctx.fillStyle='#dddddd';
+    ctx.beginPath();ctx.ellipse(0,-hh+14*s,11*s,10*s,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.roundRect(-8*s,-hh+20*s,16*s,7*s,3*s);ctx.fill();
+    ctx.fillStyle='#1a1a2e';
+    ctx.beginPath();ctx.ellipse(-4*s,-hh+13*s,3.5*s,4*s,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(4*s,-hh+13*s,3.5*s,4*s,0,0,Math.PI*2);ctx.fill();
+    // Glowing eyes
+    ctx.fillStyle='#00ff88';ctx.shadowColor='#00ff88';ctx.shadowBlur=8*s;
+    ctx.beginPath();ctx.ellipse(-4*s,-hh+13*s,2*s,2.5*s,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(4*s,-hh+13*s,2*s,2.5*s,0,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+    // Teeth
+    ctx.fillStyle='#1a1a2e';
+    ctx.beginPath();ctx.moveTo(-2*s,-hh+18*s);ctx.lineTo(0,-hh+15*s);ctx.lineTo(2*s,-hh+18*s);ctx.fill();
+    for(let i=0;i<4;i++){ctx.beginPath();ctx.roundRect((-7+i*4)*s,-hh+21*s,3*s,5*s,s);ctx.fill();}
+    // Windshield
+    ctx.fillStyle='#000820';ctx.globalAlpha=0.95;ctx.beginPath();ctx.roundRect(-11*s,4*s,22*s,17*s,4*s);ctx.fill();
+    ctx.fillStyle='#00ff88';ctx.globalAlpha=0.07;ctx.beginPath();ctx.roundRect(-11*s,4*s,22*s,17*s,4*s);ctx.fill();
+    ctx.globalAlpha=1;
+    // Green headlights
+    ctx.fillStyle='#00ff88';ctx.shadowColor='#00ff88';ctx.shadowBlur=10*s;
+    ctx.beginPath();ctx.roundRect(-hw+2*s,-hh+2*s,9*s,5*s,2*s);ctx.fill();
+    ctx.beginPath();ctx.roundRect(hw-11*s,-hh+2*s,9*s,5*s,2*s);ctx.fill();ctx.shadowBlur=0;
+    // Taillights
+    ctx.fillStyle='#880000';
+    ctx.beginPath();ctx.roundRect(-hw+2*s,hh-7*s,9*s,5*s,2*s);ctx.fill();
+    ctx.beginPath();ctx.roundRect(hw-11*s,hh-7*s,9*s,5*s,2*s);ctx.fill();
+    // Badge skull
+    ctx.fillStyle='#111122';ctx.strokeStyle='#00ff88';ctx.lineWidth=1.5*s;
+    ctx.shadowColor='#00ff88';ctx.shadowBlur=4*s;
+    ctx.beginPath();ctx.arc(0,hh-10*s,8*s,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+    ctx.fillStyle='#cccccc';ctx.beginPath();ctx.ellipse(0,hh-11*s,4.5*s,4*s,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#111122';
+    ctx.beginPath();ctx.ellipse(-2*s,hh-12*s,1.5*s,1.8*s,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(2*s,hh-12*s,1.5*s,1.8*s,0,0,Math.PI*2);ctx.fill();
+  }
+
+  function draw() {
+    const W = canvas.width / devicePixelRatio;
+    const H = canvas.height / devicePixelRatio;
+    const cx = W/2, cy = H/2;
+    // Orbit radius — trucks are ~28px wide at s=0.5, so keep them well inside
+    const r = Math.min(W, H) * 0.30;
+    // Scale trucks to fit nicely in the card preview
+    const s = Math.min(W, H) / 320;
+
+    // Dirt background
+    if(!dirtGrad) {
+      dirtGrad = ctx.createRadialGradient(cx,cy,20,cx,cy,Math.max(W,H)*0.7);
+      dirtGrad.addColorStop(0,'#8B5E2A');
+      dirtGrad.addColorStop(0.6,'#6B4418');
+      dirtGrad.addColorStop(1,'#3A1E08');
+    }
+    ctx.fillStyle = dirtGrad;
+    ctx.fillRect(0,0,W,H);
+
+    // Dirt scuff marks
+    ctx.strokeStyle='rgba(0,0,0,0.10)'; ctx.lineWidth=1;
+    const marks=[[0.17,0.12,0.29,0.17],[0.42,0.10,0.55,0.15],[0.73,0.11,0.83,0.09],[0.12,0.35,0.25,0.40],[0.62,0.28,0.79,0.33],[0.10,0.55,0.27,0.59],[0.52,0.52,0.65,0.57],[0.83,0.50,0.94,0.46],[0.20,0.72,0.35,0.67],[0.63,0.75,0.78,0.80]];
+    for(const [x1,y1,x2,y2] of marks){ctx.beginPath();ctx.moveTo(x1*W,y1*H);ctx.lineTo(x2*W,y2*H);ctx.stroke();}
+
+    // Track ellipse
+    ctx.strokeStyle='rgba(0,0,0,0.18)'; ctx.lineWidth=2;
+    ctx.setLineDash([8,5]);
+    ctx.beginPath();ctx.ellipse(cx,cy,r*0.95,r*0.72,0,0,Math.PI*2);ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Plank border walls
+    const pw = Math.max(8, W*0.028);
+    const planks=['#6B3A1F','#7A4422','#5C3218','#6B3A1F'];
+    const pw2 = pw*2;
+    for(let x=pw;x<W-pw;x+=pw2){ctx.fillStyle=planks[Math.floor(x/pw2)%4];ctx.fillRect(x,0,pw2,pw);ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(x,0,1,pw);}
+    for(let x=pw;x<W-pw;x+=pw2){ctx.fillStyle=planks[Math.floor(x/pw2)%4];ctx.fillRect(x,H-pw,pw2,pw);ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(x,H-pw,1,pw);}
+    for(let y=pw;y<H-pw;y+=pw2){ctx.fillStyle=planks[Math.floor(y/pw2)%4];ctx.fillRect(0,y,pw,pw2);ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(0,y,pw,1);}
+    for(let y=pw;y<H-pw;y+=pw2){ctx.fillStyle=planks[Math.floor(y/pw2)%4];ctx.fillRect(W-pw,y,pw,pw2);ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(W-pw,y,pw,1);}
+    // Corner posts
+    ctx.fillStyle='#3D1F08';
+    for(const [qx,qy] of [[0,0],[W-pw,0],[0,H-pw],[W-pw,H-pw]]){ctx.fillRect(qx,qy,pw,pw);}
+
+    // Trucks: orbit elliptically
+    const t1x = cx + Math.cos(angle1) * r * 0.95;
+    const t1y = cy + Math.sin(angle1) * r * 0.72;
+    const t1a = angle1 + Math.PI/2;
+
+    const t2x = cx + Math.cos(angle2) * r * 0.95;
+    const t2y = cy + Math.sin(angle2) * r * 0.72;
+    const t2a = angle2 + Math.PI/2;
+
+    // Draw player truck (red Flame Beast)
+    ctx.save(); ctx.translate(t1x, t1y); ctx.rotate(t1a);
+    drawPlayerTruck(s);
+    ctx.restore();
+
+    // Draw AI truck (Skull Crusher)
+    ctx.save(); ctx.translate(t2x, t2y); ctx.rotate(t2a);
+    drawAITruck(s);
+    ctx.restore();
+
+    angle1 += 0.016;
+    angle2 += 0.016;
+    requestAnimationFrame(draw);
+  }
+
+  draw();
+})();
+</script>
+</body>
+</html>
