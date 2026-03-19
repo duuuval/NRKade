@@ -6,67 +6,48 @@
 <title>DESTRUCTION DERBY - Monster Trucks &amp; Spaceships</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-
   html, body {
     width:100%; height:100%;
     background:#000;
     overflow:hidden;
-    font-family:'Trebuchet MS', 'Comic Sans MS', Tahoma, sans-serif;
+    font-family:'Trebuchet MS','Comic Sans MS',Tahoma,sans-serif;
     touch-action:none;
   }
 
   #gameWrapper {
-    display:flex;
-    flex-direction:column;
-    width:100vw;
-    height:100vh;
+    display:flex; flex-direction:column;
+    width:100vw; height:100vh;
   }
 
+  /* ── HUD bar — back btn lives here, no fixed positioning ── */
   #ui {
-    flex:0 0 auto;
-    width:100%;
-    padding:5px 16px 4px;
-    display:flex; justify-content:space-between; align-items:flex-start;
-    background:rgba(0,0,0,0.6);
-    pointer-events:none;
-    z-index:10;
-  }
-
-  #canvasArea {
-    position:relative;
-    flex:1 1 auto;
-    min-height:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:#000;
-    overflow:hidden;
-  }
-  canvas {
-    display:block;
-    max-width:100%;
-    max-height:100%;
-    aspect-ratio:16/9;
-    width:100%;
-    height:100%;
-    object-fit:contain;
-  }
-
-  #controls {
-    flex:0 0 auto;
-    padding:8px 20px 10px;
+    flex:0 0 auto; width:100%;
+    padding:5px 12px 4px;
     display:flex; justify-content:space-between; align-items:center;
     background:rgba(0,0,0,0.65);
-    pointer-events:none;
+    pointer-events:none; z-index:10;
   }
+  #backBtn {
+    pointer-events:all;
+    background:rgba(255,255,255,0.07);
+    border:1.5px solid rgba(255,255,255,0.2);
+    border-radius:8px; color:rgba(255,255,255,0.7);
+    font-size:12px; font-weight:700; letter-spacing:1px;
+    padding:4px 10px; cursor:pointer; text-decoration:none;
+    display:none; white-space:nowrap;
+    font-family:'Trebuchet MS',Tahoma,sans-serif;
+  }
+  #backBtn:active { background:rgba(255,255,255,0.18); }
+  /* spacer when back btn is hidden so HUD stays balanced */
+  #backPlaceholder { width:60px; }
 
   .hud-block { display:flex; flex-direction:column; gap:2px; }
   .hud-block.right { align-items:flex-end; }
-  .truck-label { font-weight:900; font-size:12px; letter-spacing:1px; text-shadow:0 0 8px currentColor; font-style:italic; text-transform:uppercase; }
+  .truck-label { font-weight:900; font-size:11px; letter-spacing:1px; text-shadow:0 0 8px currentColor; font-style:italic; text-transform:uppercase; }
   .player-label { color:#ff4422; }
-  .ai-label { color:#00ff88; }
+  .ai-label     { color:#00ff88; }
   .hit-pips { display:flex; gap:3px; margin-top:2px; }
-  .pip { width:11px; height:11px; border-radius:50%; border:1.5px solid; transition:transform 0.15s, opacity 0.15s; }
+  .pip { width:11px; height:11px; border-radius:50%; border:1.5px solid; transition:transform 0.15s,opacity 0.15s; }
   .pip.alive  { transform:scale(1);   opacity:1; }
   .pip.dead   { transform:scale(0.4); opacity:0.2; }
   .pip.player { background:#ff4422; border-color:#ff8866; box-shadow:0 0 4px #ff4422; }
@@ -77,86 +58,52 @@
   #pauseBtn {
     pointer-events:all;
     width:28px; height:28px;
-    background:rgba(255,255,255,0.07);
-    border:1.5px solid rgba(255,255,255,0.18);
+    background:rgba(255,255,255,0.07); border:1.5px solid rgba(255,255,255,0.18);
     border-radius:8px; color:rgba(255,255,255,0.5); font-size:14px;
     display:flex; align-items:center; justify-content:center;
-    cursor:pointer; align-self:center; flex-shrink:0;
+    cursor:pointer; flex-shrink:0;
   }
   #pauseBtn:active { background:rgba(255,255,255,0.18); color:white; }
 
-  #flashOverlay {
-    position:absolute; inset:0; pointer-events:none; z-index:18;
-    opacity:0; transition:opacity 0.08s;
+  /* ── Canvas ── */
+  #canvasArea {
+    position:relative; flex:1 1 auto; min-height:0;
+    display:flex; align-items:center; justify-content:center;
+    background:#000; overflow:hidden;
   }
-  #trickAnnounce {
-    position:absolute; top:35%; left:50%; transform:translateX(-50%);
-    font-weight:900; font-size:28px;
-    color:#ffdd00; text-shadow:0 0 20px #ffaa00, 2px 2px 0 #000;
-    pointer-events:none; z-index:15; opacity:0; white-space:nowrap; transition:opacity 0.3s;
-  }
+  canvas { display:block; max-width:100%; max-height:100%; }
 
+  /* ── Controls bar ── */
+  #controls {
+    flex:0 0 auto; padding:8px 16px 10px;
+    display:flex; justify-content:space-between; align-items:center;
+    background:rgba(0,0,0,0.65);
+    pointer-events:none;
+  }
+  .steer-pad { display:flex; gap:8px; pointer-events:all; align-items:center; }
+  .right-pad  { display:flex; gap:10px; align-items:center; pointer-events:all; }
+
+  /* ── Fullscreen button — in controls bar, clearly labelled ── */
   #fsBtn {
     display:none;
-    position:absolute; bottom:10px; right:10px; z-index:25;
-    background:rgba(0,0,0,0.5); border:1.5px solid rgba(255,255,255,0.25);
-    border-radius:8px; color:rgba(255,255,255,0.65);
-    font-size:17px; width:34px; height:34px;
-    align-items:center; justify-content:center; cursor:pointer; pointer-events:all;
+    pointer-events:all;
+    background:rgba(255,255,255,0.08); border:1.5px solid rgba(255,255,255,0.25);
+    border-radius:10px; color:rgba(255,255,255,0.75);
+    font-size:11px; font-weight:700; letter-spacing:1px;
+    padding:0 10px; height:44px; min-width:60px;
+    align-items:center; justify-content:center; gap:5px;
+    cursor:pointer; white-space:nowrap;
+    font-family:'Trebuchet MS',Tahoma,sans-serif;
   }
-  #fsBtn:active { background:rgba(255,255,255,0.15); }
+  #fsBtn:active { background:rgba(255,255,255,0.2); }
 
-  #overlay {
-    position:absolute; top:0; left:0; width:100%; height:100%;
-    display:flex; flex-direction:column;
-    align-items:center; justify-content:center;
-    background:rgba(0,0,0,0.88); z-index:20; gap:14px;
-    text-align:center; box-sizing:border-box; padding:20px;
-  }
-  #overlay h1 { font-weight:900; font-size:clamp(26px,5vw,52px); letter-spacing:4px; line-height:1; font-style:italic; -webkit-text-stroke:1px rgba(255,255,255,0.3); }
-  #overlay .subtitle { font-size:clamp(12px,2vw,17px); color:#aaa; letter-spacing:2px; padding:0 20px; }
-  .win  { color:#ff4422; text-shadow:0 0 20px #ff4422; }
-  .lose { color:#00ff88; text-shadow:0 0 20px #00ff88; }
-  .start{ color:#ffdd00; text-shadow:0 0 20px #ffdd00; }
-  .section-label { font-weight:900; font-size:11px; color:#777; letter-spacing:4px; margin-top:8px; margin-bottom:2px; text-transform:uppercase; }
-  .world-btns { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
-  .world-btn {
-    padding:9px 16px; border-radius:10px; border:2px solid;
-    font-weight:900; font-size:14px; cursor:pointer; font-style:italic; letter-spacing:1px;
-    pointer-events:all; transition:transform 0.1s, box-shadow 0.1s; text-align:center; line-height:1.3;
-  }
-  .world-btn:active { transform:scale(0.94); }
-  .world-btn.trucks { background:rgba(139,90,20,0.25); border-color:#aa6622; color:#ddaa55; }
-  .world-btn.space  { background:rgba(40,80,200,0.2);  border-color:#4466cc; color:#88aaff; }
-  .world-btn.selected { transform:scale(1.08); box-shadow:0 0 16px currentColor; }
-  .diff-btns { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
-  .diff-btn {
-    padding:9px 16px; border-radius:10px; border:2px solid;
-    font-weight:900; font-size:14px; cursor:pointer; font-style:italic; letter-spacing:1px;
-    pointer-events:all; transition:transform 0.1s, box-shadow 0.1s;
-  }
-  .diff-btn:active { transform:scale(0.94); }
-  .diff-btn.easy   { background:rgba(0,200,80,0.2);  border-color:#00cc55; color:#00ff77; }
-  .diff-btn.medium { background:rgba(255,180,0,0.2); border-color:#ffaa00; color:#ffcc44; }
-  .diff-btn.hard   { background:rgba(220,30,30,0.2); border-color:#cc2222; color:#ff4444; }
-  .diff-btn.selected { transform:scale(1.08); box-shadow:0 0 16px currentColor; }
-  #startBtn {
-    margin-top:6px; padding:12px 36px;
-    font-weight:900; font-size:20px; letter-spacing:3px; font-style:italic;
-    background:linear-gradient(135deg,#cc1111,#ff4422);
-    color:white; border:none; border-radius:12px; cursor:pointer;
-    box-shadow:0 0 20px rgba(255,68,34,0.5); pointer-events:all;
-  }
-
-  .steer-pad { display:flex; gap:8px; pointer-events:all; align-items:center; }
-  .right-pad  { display:flex; gap:10px; align-items:flex-end; pointer-events:all; }
   .ctrl-btn {
     background:rgba(255,255,255,0.1); border:1.5px solid rgba(255,255,255,0.2);
     border-radius:14px; color:white; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
     user-select:none; -webkit-user-select:none; transition:background 0.08s;
   }
-  .ctrl-btn.pressed, .ctrl-btn:active { background:rgba(255,255,255,0.32); border-color:rgba(255,255,255,0.5); }
+  .ctrl-btn.pressed,.ctrl-btn:active { background:rgba(255,255,255,0.32); border-color:rgba(255,255,255,0.5); }
   .steer-btn { width:72px; height:72px; font-size:30px; }
   .gas-btn { width:80px; height:80px; font-size:26px; background:rgba(0,200,80,0.85) !important; border-color:#00ff66 !important; box-shadow:0 0 16px rgba(0,255,80,0.6) !important; }
   .action-btn {
@@ -166,37 +113,90 @@
   }
   #boostBtn { width:80px; height:80px; background:rgba(255,100,0,0.35); border-color:#ff6600; box-shadow:0 0 12px rgba(255,100,0,0.5); font-size:32px; }
 
-  #backBtn {
-    position:fixed; top:10px; left:10px; z-index:100;
-    background:rgba(0,0,0,0.7); border:1.5px solid rgba(255,255,255,0.2);
-    border-radius:8px; color:rgba(255,255,255,0.6); font-size:13px;
-    padding:6px 10px; cursor:pointer; text-decoration:none; display:none;
+  /* ── Flash / announce ── */
+  #flashOverlay { position:absolute; inset:0; pointer-events:none; z-index:18; opacity:0; transition:opacity 0.08s; }
+  #trickAnnounce {
+    position:absolute; top:35%; left:50%; transform:translateX(-50%);
+    font-weight:900; font-size:28px; color:#ffdd00;
+    text-shadow:0 0 20px #ffaa00,2px 2px 0 #000;
+    pointer-events:none; z-index:15; opacity:0; white-space:nowrap; transition:opacity 0.3s;
   }
-  #backBtn:hover { color:white; border-color:rgba(255,255,255,0.5); }
+
+  /* ── Overlay (title/pause/win/lose) ── */
+  #overlay {
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.88); z-index:20; gap:12px;
+    text-align:center; box-sizing:border-box; padding:16px;
+  }
+  #overlay h1 { font-weight:900; font-size:clamp(24px,5vw,52px); letter-spacing:4px; line-height:1; font-style:italic; -webkit-text-stroke:1px rgba(255,255,255,0.3); }
+  #overlay .subtitle { font-size:clamp(12px,2vw,17px); color:#aaa; letter-spacing:2px; padding:0 16px; }
+  .win  { color:#ff4422; text-shadow:0 0 20px #ff4422; }
+  .lose { color:#00ff88; text-shadow:0 0 20px #00ff88; }
+  .start{ color:#ffdd00; text-shadow:0 0 20px #ffdd00; }
+  .section-label { font-weight:900; font-size:11px; color:#777; letter-spacing:4px; margin-top:6px; margin-bottom:2px; text-transform:uppercase; }
+  .world-btns { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .world-btn {
+    padding:8px 14px; border-radius:10px; border:2px solid;
+    font-weight:900; font-size:14px; cursor:pointer; font-style:italic; letter-spacing:1px;
+    pointer-events:all; transition:transform 0.1s,box-shadow 0.1s; text-align:center; line-height:1.3;
+  }
+  .world-btn:active { transform:scale(0.94); }
+  .world-btn.trucks { background:rgba(139,90,20,0.25); border-color:#aa6622; color:#ddaa55; }
+  .world-btn.space  { background:rgba(40,80,200,0.2);  border-color:#4466cc; color:#88aaff; }
+  .world-btn.selected { transform:scale(1.08); box-shadow:0 0 16px currentColor; }
+  .diff-btns { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  .diff-btn {
+    padding:8px 14px; border-radius:10px; border:2px solid;
+    font-weight:900; font-size:14px; cursor:pointer; font-style:italic; letter-spacing:1px;
+    pointer-events:all; transition:transform 0.1s,box-shadow 0.1s;
+  }
+  .diff-btn:active { transform:scale(0.94); }
+  .diff-btn.easy   { background:rgba(0,200,80,0.2);  border-color:#00cc55; color:#00ff77; }
+  .diff-btn.medium { background:rgba(255,180,0,0.2); border-color:#ffaa00; color:#ffcc44; }
+  .diff-btn.hard   { background:rgba(220,30,30,0.2); border-color:#cc2222; color:#ff4444; }
+  .diff-btn.selected { transform:scale(1.08); box-shadow:0 0 16px currentColor; }
+  #startBtn {
+    margin-top:4px; padding:12px 32px;
+    font-weight:900; font-size:20px; letter-spacing:3px; font-style:italic;
+    background:linear-gradient(135deg,#cc1111,#ff4422);
+    color:white; border:none; border-radius:12px; cursor:pointer;
+    box-shadow:0 0 20px rgba(255,68,34,0.5); pointer-events:all;
+  }
+
+  /* HUD and controls hidden on menu/pause screens, shown only during play */
+  #ui, #controls { visibility:hidden; }
+  body.playing #ui, body.playing #controls { visibility:visible; }
 </style>
 </head>
 <body>
-
-<a id="backBtn" href="index.html">← ARCADE</a>
-
 <div id="gameWrapper">
+  <!-- HUD: back btn | player | pause | ai -->
   <div id="ui">
-    <div class="hud-block">
-      <div class="truck-label player-label" id="playerLabel">🔴 FLAME BEAST</div>
-      <div class="hit-pips" id="playerPips"></div>
+    <div id="backPlaceholder">
+      <a id="backBtn" href="index.html">← ARCADE</a>
     </div>
-    <div id="pauseBtn">⏸</div>
-    <div class="hud-block right">
-      <div class="truck-label ai-label" id="aiLabel">💀 SKULL CRUSHER</div>
-      <div class="hit-pips" id="aiPips"></div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div class="hud-block">
+        <div class="truck-label player-label" id="playerLabel">🔴 FLAME BEAST</div>
+        <div class="hit-pips" id="playerPips"></div>
+      </div>
+      <div id="pauseBtn">⏸</div>
+      <div class="hud-block right">
+        <div class="truck-label ai-label" id="aiLabel">💀 SKULL CRUSHER</div>
+        <div class="hit-pips" id="aiPips"></div>
+      </div>
+    </div>
+    <!-- right spacer to balance layout -->
+    <div style="width:60px;display:flex;justify-content:flex-end;">
     </div>
   </div>
 
+  <!-- Canvas -->
   <div id="canvasArea">
-    <canvas id="gameCanvas" width="800" height="450"></canvas>
+    <canvas id="gameCanvas"></canvas>
     <div id="flashOverlay"></div>
     <div id="trickAnnounce"></div>
-    <div id="fsBtn" title="Fullscreen">⛶</div>
     <div id="overlay">
       <h1 class="start">DESTRUCTION DERBY</h1>
       <div class="section-label">PICK YOUR WORLD</div>
@@ -214,11 +214,13 @@
     </div>
   </div>
 
+  <!-- Controls: steer | [fs btn] | boost+gas -->
   <div id="controls">
     <div class="steer-pad">
       <div class="ctrl-btn steer-btn" id="btnLeft">◀</div>
       <div class="ctrl-btn steer-btn" id="btnRight">▶</div>
     </div>
+    <div id="fsBtn">⛶ FULL<br>SCREEN</div>
     <div class="right-pad">
       <div class="action-btn" id="boostBtn">🔥</div>
       <div class="ctrl-btn gas-btn" id="btnUp">⬆</div>
@@ -227,55 +229,77 @@
 </div>
 
 <script>
-// ── BACK BUTTON ──────────────────────────────────────────────────────────────
+// ── LAYOUT: phone=portrait(480×800), tablet/desktop=landscape(800×450) ────────
+// "phone" = smallest viewport dimension < 500px
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+
+let W, H, isPhone;
+let bgGrad=null, dirtGrad=null;
+let pickups=[], particles=[], stars=[];
+let player, ai, gameRunning=false, trickTimeout=null, keys={};
+
+function detectLayout() {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  isPhone = Math.min(vw, vh) < 500;
+  if (isPhone) {
+    W = 480; H = 800;
+    canvas.width  = W; canvas.height = H;
+    canvas.style.aspectRatio = '480/800';
+  } else {
+    W = 800; H = 450;
+    canvas.width  = W; canvas.height = H;
+    canvas.style.aspectRatio = '800/450';
+  }
+  // invalidate cached gradients on resize
+  bgGrad = null; dirtGrad = null;
+  // regenerate stars for new dimensions
+  if (stars.length) generateStars();
+}
+detectLayout();
+window.addEventListener('resize', () => { detectLayout(); });
+
+// ── BACK BUTTON — lives in HUD, shown by referrer check ──────────────────────
 (function(){
-  const ref=document.referrer, el=document.getElementById('backBtn');
-  if(ref&&(ref.includes('index.html')||ref.includes('arcade')||ref===location.origin+'/'))
-    el.style.display='block';
+  const ref = document.referrer, el = document.getElementById('backBtn');
+  if (ref && (ref.includes('index.html') || ref.includes('arcade') || ref === location.origin+'/'))
+    el.style.display = 'inline-block';
 })();
 
-// ── FULLSCREEN ───────────────────────────────────────────────────────────────
-const fsBtn=document.getElementById('fsBtn');
-if(document.fullscreenEnabled||document.webkitFullscreenEnabled){
-  fsBtn.style.display='flex';
-  fsBtn.addEventListener('click',()=>{
-    const el=document.documentElement;
-    if(!document.fullscreenElement&&!document.webkitFullscreenElement)
-      (el.requestFullscreen||el.webkitRequestFullscreen).call(el);
+// ── FULLSCREEN ────────────────────────────────────────────────────────────────
+const fsBtn = document.getElementById('fsBtn');
+if (document.fullscreenEnabled || document.webkitFullscreenEnabled) {
+  fsBtn.style.display = 'flex';
+  fsBtn.addEventListener('click', () => {
+    const el = document.documentElement;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement)
+      (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
     else
-      (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
   });
-  const onFsChange=()=>{
-    const inFs=!!(document.fullscreenElement||document.webkitFullscreenElement);
-    fsBtn.textContent=inFs?'✕':'⛶';
-    fsBtn.title=inFs?'Exit fullscreen':'Fullscreen';
+  const onFsChange = () => {
+    const inFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    fsBtn.innerHTML = inFs ? '✕ EXIT<br>FULL' : '⛶ FULL<br>SCREEN';
   };
-  document.addEventListener('fullscreenchange',onFsChange);
-  document.addEventListener('webkitfullscreenchange',onFsChange);
+  document.addEventListener('fullscreenchange', onFsChange);
+  document.addEventListener('webkitfullscreenchange', onFsChange);
 }
 
-// ── GAME CONSTANTS ───────────────────────────────────────────────────────────
-const canvas=document.getElementById('gameCanvas');
-const ctx=canvas.getContext('2d');
-const W=800, H=450;  // 16:9
-
+// ── GAME CONSTANTS ────────────────────────────────────────────────────────────
 const FRICTION=0.91, ACCEL=0.32, TURN_SPD=0.055, MAX_SPD=5.5, BOOST_SPD=9.0;
-
 let difficulty='easy', world='trucks';
 
-const DIFF={
-  easy:{aiSpeed:0.38,aiBoostChance:0.0,aiOrbitDist:999,aiChargeRange:999,aiReactionDeg:0.22,aiEvadeAt:2,aiBoostDistReq:0,hitPower:7,wanderChance:0.4,wanderTime:180},
-  medium:{wanderChance:0.08,wanderTime:60,aiSpeed:0.78,aiBoostChance:0.005,aiOrbitDist:190,aiChargeRange:380,aiReactionDeg:0.09,aiEvadeAt:5,aiBoostDistReq:300,hitPower:10},
-  hard:{wanderChance:0.0,wanderTime:0,aiSpeed:1.0,aiBoostChance:0.012,aiOrbitDist:150,aiChargeRange:999,aiReactionDeg:0.06,aiEvadeAt:6,aiBoostDistReq:250,hitPower:12},
+const DIFF = {
+  easy:  {aiSpeed:0.38,aiBoostChance:0.0, aiOrbitDist:999,aiChargeRange:999,aiReactionDeg:0.22,aiEvadeAt:2,aiBoostDistReq:0,  hitPower:7, wanderChance:0.4, wanderTime:180},
+  medium:{aiSpeed:0.78,aiBoostChance:0.005,aiOrbitDist:190,aiChargeRange:380,aiReactionDeg:0.09,aiEvadeAt:5,aiBoostDistReq:300,hitPower:10,wanderChance:0.08,wanderTime:60},
+  hard:  {aiSpeed:1.0, aiBoostChance:0.012,aiOrbitDist:150,aiChargeRange:999,aiReactionDeg:0.06,aiEvadeAt:6,aiBoostDistReq:250,hitPower:12,wanderChance:0.0, wanderTime:0},
 };
 
-const PICKUP_DEFS=[
-  {icon:'🛡️',label:'SHIELD',color:'#4488ff',glowColor:'rgba(68,136,255,0.3)'},
-  {icon:'⚡',label:'SUPER BOOST',color:'#ffdd00',glowColor:'rgba(255,220,0,0.3)'},
+const PICKUP_DEFS = [
+  {icon:'🛡️',color:'#4488ff'},
+  {icon:'⚡', color:'#ffdd00'},
 ];
 
-let pickups=[],particles=[],stars=[];
-let player,ai,gameRunning=false,trickTimeout=null,keys={};
 
 function makeTruck(x,y,angle,isPlayer){
   return{x,y,angle,isPlayer,vx:0,vy:0,hits:0,maxHits:7,invTimer:0,shieldTimer:0,
@@ -283,18 +307,35 @@ function makeTruck(x,y,angle,isPlayer){
 }
 
 function resetPickups(){
-  pickups=[
-    {x:200,y:112,type:1,alive:true},
-    {x:600,y:112,type:0,alive:true},
-    {x:150,y:338,type:0,alive:true},
-    {x:650,y:338,type:1,alive:true},
-    {x:400,y:225,type:0,alive:true},
-  ];
+  if(isPhone){
+    // Portrait 480×800 positions
+    pickups=[
+      {x:160,y:200,type:1,alive:true},
+      {x:320,y:200,type:0,alive:true},
+      {x:100,y:580,type:0,alive:true},
+      {x:380,y:580,type:1,alive:true},
+      {x:240,y:400,type:0,alive:true},
+    ];
+  } else {
+    // Landscape 800×450 positions
+    pickups=[
+      {x:200,y:112,type:1,alive:true},
+      {x:600,y:112,type:0,alive:true},
+      {x:150,y:338,type:0,alive:true},
+      {x:650,y:338,type:1,alive:true},
+      {x:400,y:225,type:0,alive:true},
+    ];
+  }
 }
 
 function initGame(){
-  player=makeTruck(160,225,0,true);
-  ai=makeTruck(640,225,Math.PI,false);
+  if(isPhone){
+    player = makeTruck(240, 650, -Math.PI/2, true);
+    ai     = makeTruck(240, 150,  Math.PI/2, false);
+  } else {
+    player = makeTruck(160, 225, 0,        true);
+    ai     = makeTruck(640, 225, Math.PI,   false);
+  }
   particles=[];keys={};collisionCooldown=0;shakeTimer=0;shakeMag=0;
   resetPickups();generateStars();updateHUD();
 }
@@ -304,14 +345,14 @@ function generateStars(){
   for(let i=0;i<120;i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.5+0.3,tw:Math.random()*Math.PI*2});
 }
 
-// ── INPUT ────────────────────────────────────────────────────────────────────
+// ── INPUT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{
   if(!gameRunning)return;
-  const m={'ArrowUp':'up','ArrowDown':'down','ArrowLeft':'left','ArrowRight':'right','z':'boost','Z':'boost','x':'power',' ':'power'};
+  const m={'ArrowUp':'up','ArrowDown':'down','ArrowLeft':'left','ArrowRight':'right','z':'boost','Z':'boost',' ':'power'};
   if(m[e.key]){e.preventDefault();keys[m[e.key]]=true;}
 });
 document.addEventListener('keyup',e=>{
-  const m={'ArrowUp':'up','ArrowDown':'down','ArrowLeft':'left','ArrowRight':'right','z':'boost','Z':'boost','x':'power',' ':'power'};
+  const m={'ArrowUp':'up','ArrowDown':'down','ArrowLeft':'left','ArrowRight':'right','z':'boost','Z':'boost',' ':'power'};
   if(m[e.key])keys[m[e.key]]=false;
 });
 
@@ -335,7 +376,7 @@ function bindBoostBtn(id){
 }
 bindBtn('btnUp','up');bindBtn('btnLeft','left');bindBtn('btnRight','right');bindBoostBtn('boostBtn');
 
-// ── PHYSICS ──────────────────────────────────────────────────────────────────
+// ── PHYSICS ───────────────────────────────────────────────────────────────────
 function updateTruck(t,fwd,back,left,right,boost){
   if(!t.boostReady&&t.boostCharge>=100)t.boostReady=true;
   if(boost&&t.boostReady&&t.boostCharge>0){
@@ -344,9 +385,9 @@ function updateTruck(t,fwd,back,left,right,boost){
   }else if(!boost||t.boostCharge<=0){t.boosting=false;}
   const top=t.knockbackTimer>0?999:(t.boosting?BOOST_SPD:MAX_SPD);
   const acc=t.boosting?ACCEL*2.2:ACCEL;
-  if(fwd){t.vx+=Math.sin(t.angle)*acc;t.vy-=Math.cos(t.angle)*acc;}
+  if(fwd) {t.vx+=Math.sin(t.angle)*acc;t.vy-=Math.cos(t.angle)*acc;}
   if(back){t.vx-=Math.sin(t.angle)*acc*0.6;t.vy+=Math.cos(t.angle)*acc*0.6;}
-  if(left)t.angle-=TURN_SPD;
+  if(left) t.angle-=TURN_SPD;
   if(right)t.angle+=TURN_SPD;
   const s=Math.hypot(t.vx,t.vy);
   if(s>top){t.vx*=top/s;t.vy*=top/s;}
@@ -363,9 +404,8 @@ function updateTruck(t,fwd,back,left,right,boost){
   if(!t.boosting&&t.boostCharge<100)t.boostCharge=Math.min(100,t.boostCharge+0.18);
 }
 
-// ── AI ───────────────────────────────────────────────────────────────────────
-let aiPhase='wander',aiPhaseTimer=0,aiOrbitDir=1,aiOrbitAngle=0;
-let aiWanderX=400,aiWanderY=225;
+// ── AI ────────────────────────────────────────────────────────────────────────
+let aiPhase='wander',aiPhaseTimer=0,aiOrbitDir=1,aiOrbitAngle=0,aiWanderX=240,aiWanderY=400;
 
 function updateAI(){
   aiPhaseTimer--;
@@ -399,7 +439,7 @@ function updateAI(){
   if(aiSpd>aiMaxSpd&&ai.knockbackTimer<=0){ai.vx*=aiMaxSpd/aiSpd;ai.vy*=aiMaxSpd/aiSpd;}
 }
 
-// ── COMBAT ───────────────────────────────────────────────────────────────────
+// ── COMBAT ────────────────────────────────────────────────────────────────────
 let shakeTimer=0,shakeMag=0,collisionCooldown=0;
 
 function registerHit(victim,attacker){
@@ -411,7 +451,7 @@ function registerHit(victim,attacker){
   attacker.vx=-(dx/d)*(pw*0.5);attacker.vy=-(dy/d)*(pw*0.5);
   victim.knockbackTimer=25;attacker.knockbackTimer=15;
   const ov=document.getElementById('flashOverlay');
-  if(ov){ov.style.background=victim.isPlayer?'rgba(255,0,0,0.4)':'rgba(0,255,100,0.25)';ov.style.opacity='1';setTimeout(()=>{ov.style.opacity='0';},150);}
+  if(ov){ov.style.background=victim.isPlayer?'rgba(255,0,0,0.4)':'rgba(0,255,100,0.25)';ov.style.opacity='1';setTimeout(()=>ov.style.opacity='0',150);}
   shakeTimer=20;shakeMag=victim.isPlayer?10:6;
   spawnCrash(victim.x,victim.y,5);updateHUD();
 }
@@ -446,12 +486,12 @@ function checkPickups(){
 
 function showPowerupMsg(text,color){
   const el=document.getElementById('trickAnnounce');
-  el.textContent=text;el.style.color=color;el.style.textShadow=`0 0 20px ${color}, 2px 2px 0 #000`;el.style.opacity='1';
+  el.textContent=text;el.style.color=color;el.style.textShadow=`0 0 20px ${color},2px 2px 0 #000`;el.style.opacity='1';
   if(trickTimeout)clearTimeout(trickTimeout);
-  trickTimeout=setTimeout(()=>{el.style.opacity='0';el.style.color='#ffdd00';el.style.textShadow='0 0 20px #ffaa00, 2px 2px 0 #000';},1200);
+  trickTimeout=setTimeout(()=>{el.style.opacity='0';el.style.color='#ffdd00';el.style.textShadow='0 0 20px #ffaa00,2px 2px 0 #000';},1200);
 }
 
-// ── HUD ──────────────────────────────────────────────────────────────────────
+// ── HUD ───────────────────────────────────────────────────────────────────────
 function updateHUD(){
   ['player','ai'].forEach(who=>{
     const t=who==='player'?player:ai;
@@ -468,43 +508,30 @@ function updateHUD(){
   }
 }
 
-// ── PARTICLES ────────────────────────────────────────────────────────────────
+// ── PARTICLES ─────────────────────────────────────────────────────────────────
 function spawnCrash(x,y,spd){
   for(let i=0;i<Math.floor(spd*3+8);i++){
     const a=Math.random()*Math.PI*2,s=Math.random()*spd*0.8+1;
     particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,decay:0.04+Math.random()*0.04,r:Math.random()*5+2,color:Math.random()<0.5?'#ff4422':'#ffaa00'});
   }
 }
-function spawnPickup(x,y){
-  for(let i=0;i<12;i++){const a=Math.random()*Math.PI*2;particles.push({x,y,vx:Math.cos(a)*3,vy:Math.sin(a)*3,life:1,decay:0.05,r:2+Math.random()*3,color:'#00ff88'});}
-}
+function spawnPickup(x,y){for(let i=0;i<12;i++){const a=Math.random()*Math.PI*2;particles.push({x,y,vx:Math.cos(a)*3,vy:Math.sin(a)*3,life:1,decay:0.05,r:2+Math.random()*3,color:'#00ff88'});}}
 function spawnBoost(){
   const tx=player.x-Math.sin(player.angle)*24,ty=player.y+Math.cos(player.angle)*24;
   const colors=['#ff2200','#ff6600','#ffaa00','#ffee00'];
-  for(let i=0;i<10;i++){
-    particles.push({x:tx+(Math.random()-0.5)*8,y:ty+(Math.random()-0.5)*8,
-      vx:-Math.sin(player.angle)*(3+Math.random()*4)+(Math.random()-0.5)*0.6,
-      vy:Math.cos(player.angle)*(3+Math.random()*4)+(Math.random()-0.5)*0.6,
-      life:1,decay:0.055+Math.random()*0.03,r:6+Math.random()*7,color:colors[Math.floor(Math.random()*colors.length)]});
-  }
+  for(let i=0;i<10;i++)particles.push({x:tx+(Math.random()-0.5)*8,y:ty+(Math.random()-0.5)*8,vx:-Math.sin(player.angle)*(3+Math.random()*4)+(Math.random()-0.5)*0.6,vy:Math.cos(player.angle)*(3+Math.random()*4)+(Math.random()-0.5)*0.6,life:1,decay:0.055+Math.random()*0.03,r:6+Math.random()*7,color:colors[Math.floor(Math.random()*colors.length)]});
 }
-function updateParticles(){
-  particles=particles.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vx*=0.93;p.vy*=0.93;p.life-=p.decay;return p.life>0;});
-}
+function updateParticles(){particles=particles.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vx*=0.93;p.vy*=0.93;p.life-=p.decay;return p.life>0;});}
 
-// ── DRAW: PLAYER TRUCK ───────────────────────────────────────────────────────
+// ── DRAW: PLAYER TRUCK ────────────────────────────────────────────────────────
 function drawPlayerTruck(){
   const hw=22,hh=30;
   ctx.fillStyle='#1a1a1a';
-  ctx.beginPath();ctx.roundRect(-hw-6,-hh+4,11,15,3);ctx.fill();
-  ctx.beginPath();ctx.roundRect(hw-5,-hh+4,11,15,3);ctx.fill();
-  ctx.beginPath();ctx.roundRect(-hw-6,hh-19,11,15,3);ctx.fill();
-  ctx.beginPath();ctx.roundRect(hw-5,hh-19,11,15,3);ctx.fill();
+  ctx.beginPath();ctx.roundRect(-hw-6,-hh+4,11,15,3);ctx.fill();ctx.beginPath();ctx.roundRect(hw-5,-hh+4,11,15,3);ctx.fill();
+  ctx.beginPath();ctx.roundRect(-hw-6,hh-19,11,15,3);ctx.fill();ctx.beginPath();ctx.roundRect(hw-5,hh-19,11,15,3);ctx.fill();
   ctx.fillStyle='#2d2d2d';
-  ctx.beginPath();ctx.roundRect(-hw-4,-hh+6,7,11,2);ctx.fill();
-  ctx.beginPath();ctx.roundRect(hw-3,-hh+6,7,11,2);ctx.fill();
-  ctx.beginPath();ctx.roundRect(-hw-4,hh-17,7,11,2);ctx.fill();
-  ctx.beginPath();ctx.roundRect(hw-3,hh-17,7,11,2);ctx.fill();
+  ctx.beginPath();ctx.roundRect(-hw-4,-hh+6,7,11,2);ctx.fill();ctx.beginPath();ctx.roundRect(hw-3,-hh+6,7,11,2);ctx.fill();
+  ctx.beginPath();ctx.roundRect(-hw-4,hh-17,7,11,2);ctx.fill();ctx.beginPath();ctx.roundRect(hw-3,hh-17,7,11,2);ctx.fill();
   ctx.fillStyle='#cc1111';ctx.beginPath();ctx.roundRect(-hw,-hh,hw*2,hh*2,8);ctx.fill();
   ctx.fillStyle='#e01a1a';ctx.beginPath();ctx.roundRect(-hw+3,-hh+3,(hw-3)*2,(hh-3)*2,6);ctx.fill();
   const fc=['#ff6600','#ffaa00','#ffdd00'];
@@ -520,7 +547,7 @@ function drawPlayerTruck(){
   ctx.fillStyle='#ffdd00';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('1',0,hh-9);
 }
 
-// ── DRAW: AI TRUCK ───────────────────────────────────────────────────────────
+// ── DRAW: AI TRUCK ────────────────────────────────────────────────────────────
 function drawAITruck(){
   const hw=22,hh=30;
   ctx.fillStyle='#0a0a0a';
@@ -569,10 +596,9 @@ function drawTruck(t){
   ctx.restore();
 }
 
-// ── DRAW: SHIPS ──────────────────────────────────────────────────────────────
+// ── DRAW: SHIPS ───────────────────────────────────────────────────────────────
 function drawPlayerShip(){
-  const aura=ctx.createRadialGradient(0,0,10,0,0,38);
-  aura.addColorStop(0,'rgba(180,220,255,0.15)');aura.addColorStop(1,'rgba(180,220,255,0)');
+  const aura=ctx.createRadialGradient(0,0,10,0,0,38);aura.addColorStop(0,'rgba(180,220,255,0.15)');aura.addColorStop(1,'rgba(180,220,255,0)');
   ctx.fillStyle=aura;ctx.beginPath();ctx.ellipse(0,0,38,38,0,0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#ddeeff';ctx.beginPath();ctx.moveTo(0,-32);ctx.bezierCurveTo(12,-20,16,0,14,14);ctx.lineTo(8,22);ctx.lineTo(18,30);ctx.lineTo(4,20);ctx.lineTo(0,28);ctx.lineTo(-4,20);ctx.lineTo(-18,30);ctx.lineTo(-8,22);ctx.lineTo(-14,14);ctx.bezierCurveTo(-16,0,-12,-20,0,-32);ctx.closePath();ctx.fill();
   ctx.fillStyle='#ffffff';ctx.beginPath();ctx.moveTo(0,-32);ctx.bezierCurveTo(6,-22,8,-6,6,10);ctx.lineTo(0,16);ctx.lineTo(-6,10);ctx.bezierCurveTo(-8,-6,-6,-22,0,-32);ctx.closePath();ctx.fill();
@@ -586,14 +612,12 @@ function drawPlayerShip(){
 }
 
 function drawAIShip(){
-  const aura=ctx.createRadialGradient(0,0,8,0,0,36);
-  aura.addColorStop(0,'rgba(0,255,80,0.2)');aura.addColorStop(1,'rgba(0,255,80,0)');
+  const aura=ctx.createRadialGradient(0,0,8,0,0,36);aura.addColorStop(0,'rgba(0,255,80,0.2)');aura.addColorStop(1,'rgba(0,255,80,0)');
   ctx.fillStyle=aura;ctx.beginPath();ctx.ellipse(0,0,36,36,0,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle='#22aa44';ctx.lineWidth=3;ctx.lineCap='round';
   const tent=[[-22,18,-28,34],[-12,22,-14,38],[0,24,0,40],[12,22,14,38],[22,18,28,34]];
   for(const[x1,y1,x2,y2]of tent){ctx.beginPath();ctx.moveTo(x1,y1);ctx.quadraticCurveTo(x1+(x2-x1)*0.2+(Math.sin(Date.now()*0.003+x1)*3),(y1+y2)/2,x2,y2);ctx.stroke();ctx.fillStyle='#00ff66';ctx.beginPath();ctx.arc(x2,y2,2.5,0,Math.PI*2);ctx.fill();}
-  const dg=ctx.createRadialGradient(-4,-18,2,0,-10,22);
-  dg.addColorStop(0,'#aaffcc');dg.addColorStop(0.5,'#33cc66');dg.addColorStop(1,'#116633');
+  const dg=ctx.createRadialGradient(-4,-18,2,0,-10,22);dg.addColorStop(0,'#aaffcc');dg.addColorStop(0.5,'#33cc66');dg.addColorStop(1,'#116633');
   ctx.fillStyle=dg;ctx.beginPath();ctx.ellipse(0,-8,18,20,0,0,Math.PI*2);ctx.fill();
   const rg=ctx.createLinearGradient(0,-4,0,14);rg.addColorStop(0,'#44dd88');rg.addColorStop(1,'#115522');
   ctx.fillStyle=rg;ctx.beginPath();ctx.ellipse(0,6,28,10,0,0,Math.PI*2);ctx.fill();
@@ -607,17 +631,18 @@ function drawAIShip(){
   ctx.fillStyle='rgba(0,255,100,0.6)';ctx.shadowColor='#00ff66';ctx.shadowBlur=10;ctx.beginPath();ctx.ellipse(0,14,10,4,0,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
 }
 
-// ── DRAW: ARENAS ─────────────────────────────────────────────────────────────
-let bgGrad,dirtGrad;
+// ── DRAW: ARENAS ──────────────────────────────────────────────────────────────
 
 function drawDirtArena(){
   if(!dirtGrad){dirtGrad=ctx.createRadialGradient(W/2,H/2,60,W/2,H/2,500);dirtGrad.addColorStop(0,'#8B5E2A');dirtGrad.addColorStop(0.6,'#6B4418');dirtGrad.addColorStop(1,'#4A2E0A');}
   ctx.fillStyle=dirtGrad;ctx.fillRect(0,0,W,H);
   ctx.strokeStyle='rgba(0,0,0,0.12)';ctx.lineWidth=1;
+  // Scuff marks scaled to whichever arena we're using
+  const mScale=W/800;
   const marks=[[80,60,160,80],[250,50,320,75],[480,55,540,40],[650,65,720,50],[80,160,160,185],[300,140,400,165],[550,150,630,170],[720,140,780,160],[100,250,190,270],[350,230,430,255],[580,240,660,260],[50,330,130,350],[260,310,360,340],[500,320,600,345],[680,330,750,310]];
-  for(const[x1,y1,x2,y2]of marks){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
+  for(const[x1,y1,x2,y2]of marks){ctx.beginPath();ctx.moveTo(x1*mScale,y1*(H/450));ctx.lineTo(x2*mScale,y2*(H/450));ctx.stroke();}
   ctx.strokeStyle='rgba(0,0,0,0.18)';ctx.lineWidth=3;ctx.setLineDash([12,8]);
-  ctx.beginPath();ctx.ellipse(W/2,H/2,280,150,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();ctx.ellipse(W/2,H/2,W*0.35,H*0.33,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
   const planks=['#6B3A1F','#7A4422','#5C3218','#6B3A1F'];
   for(let x=20;x<W-20;x+=30){ctx.fillStyle=planks[Math.floor(x/30)%4];ctx.fillRect(x,0,30,22);ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fillRect(x,0,1,22);ctx.fillRect(x+28,0,2,22);}
   for(let x=20;x<W-20;x+=30){ctx.fillStyle=planks[Math.floor(x/30)%4];ctx.fillRect(x,H-22,30,22);ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fillRect(x,H-22,1,22);ctx.fillRect(x+28,H-22,2,22);}
@@ -632,8 +657,7 @@ function drawArena(){
   if(!bgGrad){bgGrad=ctx.createRadialGradient(W/2,H/2,50,W/2,H/2,500);bgGrad.addColorStop(0,'#0a0a1a');bgGrad.addColorStop(1,'#000008');}
   ctx.fillStyle=bgGrad;ctx.fillRect(0,0,W,H);
   const t=Date.now()*0.001;
-  for(const s of stars){ctx.globalAlpha=0.4+0.6*Math.sin(s.tw+t);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();}
-  ctx.globalAlpha=1;
+  for(const s of stars){ctx.globalAlpha=0.4+0.6*Math.sin(s.tw+t);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
   ctx.strokeStyle='rgba(80,100,180,0.04)';ctx.lineWidth=1;
   for(let gx=20;gx<W-20;gx+=60){ctx.beginPath();ctx.moveTo(gx,20);ctx.lineTo(gx,H-20);ctx.stroke();}
   for(let gy=20;gy<H-20;gy+=60){ctx.beginPath();ctx.moveTo(20,gy);ctx.lineTo(W-20,gy);ctx.stroke();}
@@ -652,15 +676,10 @@ function drawPickups(){
     const g=ctx.createRadialGradient(0,0,5,0,0,22);g.addColorStop(0,def.color+'44');g.addColorStop(1,'transparent');
     ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,22,0,Math.PI*2);ctx.fill();
     ctx.strokeStyle=def.color;ctx.lineWidth=2;ctx.shadowColor=def.color;ctx.shadowBlur=10;ctx.beginPath();ctx.arc(0,0,14,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;
-    ctx.font='16px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(def.icon,0,1);
-    ctx.restore();
+    ctx.font='16px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(def.icon,0,1);ctx.restore();
   }
 }
-
-function drawParticles(){
-  for(const p of particles){ctx.globalAlpha=p.life;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r*p.life,0,Math.PI*2);ctx.fill();}
-  ctx.globalAlpha=1;
-}
+function drawParticles(){for(const p of particles){ctx.globalAlpha=p.life;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r*p.life,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
 
 function drawCanvasHUD(){
   const barW=140,barH=12,barR=6,bx=W/2-barW/2,by=H-26;
@@ -668,8 +687,7 @@ function drawCanvasHUD(){
   const bpct=player.boostCharge/100,bg=ctx.createLinearGradient(bx,0,bx+barW,0);
   bg.addColorStop(0,'#ff4400');bg.addColorStop(1,'#ffdd00');
   ctx.fillStyle=bpct>=1?'#ffee00':bg;ctx.shadowColor=bpct>=1?'#ffee00':'#ff6600';ctx.shadowBlur=bpct>=1?12:3;
-  if(bpct>0){ctx.beginPath();ctx.roundRect(bx,by,barW*bpct,barH,barR);ctx.fill();}
-  ctx.shadowBlur=0;
+  if(bpct>0){ctx.beginPath();ctx.roundRect(bx,by,barW*bpct,barH,barR);ctx.fill();}ctx.shadowBlur=0;
   ctx.fillStyle=bpct>=1?'#ffee00':'rgba(255,255,255,0.55)';
   ctx.font=`bold ${bpct>=1?12:11}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='bottom';
   ctx.fillText(player.boosting?'🔥 BOOSTING!':bpct>=1?'🔥 READY':'CHARGING...',W/2,by-3);
@@ -686,23 +704,17 @@ function drawCanvasHUD(){
   }
 }
 
-// ── WIN CHECK ────────────────────────────────────────────────────────────────
+// ── WIN CHECK ─────────────────────────────────────────────────────────────────
 function checkWin(){
   if(player.hits>=player.maxHits||ai.hits>=ai.maxHits){
     gameRunning=false;
+    document.body.classList.remove('playing');
     const won=ai.hits>=ai.maxHits;
     const ov=document.getElementById('overlay');
     ov.innerHTML=`<h1 class="${won?'win':'lose'}">${won?'YOU WIN!':'GAME OVER'}</h1>
       <div class="subtitle">${won?(world==='space'?'ALIEN SAUCER VAPORIZED! 💥':'SKULL CRUSHER DESTROYED! 💥'):(world==='space'?'WHITE COMET DESTROYED! 👾':'FLAME BEAST WRECKED! 💀')}</div>
-      <div class="world-btns" style="justify-content:center">
-        <div class="world-btn trucks ${world==='trucks'?'selected':''}" data-world="trucks">🛻 TRUCKS</div>
-        <div class="world-btn space ${world==='space'?'selected':''}" data-world="space">🚀 SPACE</div>
-      </div>
-      <div class="diff-btns" style="justify-content:center">
-        <div class="diff-btn easy ${difficulty==='easy'?'selected':''}" data-diff="easy">🟢 EASY</div>
-        <div class="diff-btn medium ${difficulty==='medium'?'selected':''}" data-diff="medium">🟡 MEDIUM</div>
-        <div class="diff-btn hard ${difficulty==='hard'?'selected':''}" data-diff="hard">🔴 HARD</div>
-      </div>
+      <div class="world-btns"><div class="world-btn trucks ${world==='trucks'?'selected':''}" data-world="trucks">🛻 TRUCKS</div><div class="world-btn space ${world==='space'?'selected':''}" data-world="space">🚀 SPACE</div></div>
+      <div class="diff-btns"><div class="diff-btn easy ${difficulty==='easy'?'selected':''}" data-diff="easy">🟢 EASY</div><div class="diff-btn medium ${difficulty==='medium'?'selected':''}" data-diff="medium">🟡 MEDIUM</div><div class="diff-btn hard ${difficulty==='hard'?'selected':''}" data-diff="hard">🔴 HARD</div></div>
       <button id="startBtn">${won?'PLAY AGAIN 🔥':'TRY AGAIN 💪'}</button>`;
     ov.style.display='flex';
     document.getElementById('startBtn').addEventListener('click',startGame);
@@ -711,17 +723,14 @@ function checkWin(){
   }
 }
 
-// ── GAME LOOP ────────────────────────────────────────────────────────────────
+// ── GAME LOOP ─────────────────────────────────────────────────────────────────
 function gameLoop(){
   if(!gameRunning)return;
   requestAnimationFrame(gameLoop);
   updateTruck(player,keys['up'],keys['down'],keys['left'],keys['right'],keys['boost']);
   updateAI();checkCollision();checkPickups();updateParticles();
   if(player.boosting&&Math.random()<0.5)spawnBoost();
-  if(shakeTimer>0){
-    const sx=(Math.random()-0.5)*shakeMag,sy=(Math.random()-0.5)*shakeMag;
-    ctx.save();ctx.translate(sx,sy);shakeTimer--;if(shakeTimer===0)shakeMag=0;
-  }
+  if(shakeTimer>0){const sx=(Math.random()-0.5)*shakeMag,sy=(Math.random()-0.5)*shakeMag;ctx.save();ctx.translate(sx,sy);shakeTimer--;if(shakeTimer===0)shakeMag=0;}
   if(world==='trucks')drawDirtArena();else drawArena();
   drawPickups();drawParticles();drawTruck(player);drawTruck(ai);drawCanvasHUD();
   if(shakeTimer>0)ctx.restore();
@@ -730,28 +739,37 @@ function gameLoop(){
 
 function openPauseMenu(){
   gameRunning=false;
+  document.body.classList.remove('playing');
   const ov=document.getElementById('overlay');
-  ov.innerHTML=`<h1 class="start">DESTRUCTION DERBY</h1>
-    <div class="section-label">PICK YOUR WORLD</div>
+  ov.innerHTML=`<h1 class="start">PAUSED</h1>
+    <button id="resumeBtn" style="margin-bottom:4px;padding:12px 36px;font-weight:900;font-size:20px;letter-spacing:3px;font-style:italic;background:linear-gradient(135deg,#117733,#22cc55);color:white;border:none;border-radius:12px;cursor:pointer;box-shadow:0 0 20px rgba(34,200,80,0.5);pointer-events:all;">▶ RESUME</button>
+    <div class="section-label">CHANGE WORLD</div>
     <div class="world-btns">
       <div class="world-btn trucks ${world==='trucks'?'selected':''}" data-world="trucks">🛻 TRUCKS<br><small>Dirt Arena</small></div>
       <div class="world-btn space ${world==='space'?'selected':''}" data-world="space">🚀 SPACE<br><small>Starship Battle</small></div>
     </div>
-    <div class="section-label">DIFFICULTY</div>
+    <div class="section-label">CHANGE DIFFICULTY</div>
     <div class="diff-btns">
       <div class="diff-btn easy ${difficulty==='easy'?'selected':''}" data-diff="easy">🟢 EASY</div>
       <div class="diff-btn medium ${difficulty==='medium'?'selected':''}" data-diff="medium">🟡 MEDIUM</div>
       <div class="diff-btn hard ${difficulty==='hard'?'selected':''}" data-diff="hard">🔴 HARD</div>
     </div>
-    <button id="startBtn">SMASH IT! 🛻</button>`;
+    <button id="startBtn" style="margin-top:4px;padding:10px 28px;font-weight:900;font-size:16px;letter-spacing:2px;font-style:italic;background:rgba(180,30,10,0.6);color:#ffaaaa;border:2px solid #cc3311;border-radius:12px;cursor:pointer;pointer-events:all;">↩ NEW GAME</button>`;
   ov.style.display='flex';
+  document.getElementById('resumeBtn').addEventListener('click',()=>{
+    ov.style.display='none';
+    document.body.classList.add('playing');
+    gameRunning=true;
+    requestAnimationFrame(gameLoop);
+  });
   document.getElementById('startBtn').addEventListener('click',startGame);
-  document.querySelectorAll('.world-btn').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('.world-btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');world=b.dataset.world;document.getElementById('startBtn').textContent=world==='space'?'LAUNCH! 🚀':'SMASH IT! 🛻';});});
+  document.querySelectorAll('.world-btn').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('.world-btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');world=b.dataset.world;});});
   document.querySelectorAll('.diff-btn').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('.diff-btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');difficulty=b.dataset.diff;});});
 }
 
 function startGame(){
   document.getElementById('overlay').style.display='none';
+  document.body.classList.add('playing');
   const pL=world==='space'?'⚪ WHITE COMET':'🔴 FLAME BEAST';
   const aL=world==='space'?'👾 ALIEN SAUCER':'💀 SKULL CRUSHER';
   document.getElementById('playerLabel').textContent=pL;
