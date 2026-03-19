@@ -414,16 +414,16 @@
     // Body
     ctx.fillStyle='#cc1111';ctx.beginPath();ctx.roundRect(-hw,-hh,hw*2,hh*2,8*s);ctx.fill();
     ctx.fillStyle='#e01a1a';ctx.beginPath();ctx.roundRect(-hw+3*s,-hh+3*s,(hw-3*s)*2,(hh-3*s)*2,6*s);ctx.fill();
-    // Flames
+    // Flames — centered on hood, below headlights
     const fc=['#ff6600','#ffaa00','#ffdd00'];
     for(let c=0;c<3;c++){
       ctx.fillStyle=fc[c];
-      for(let i=0;i<5;i++){
-        const fx=(-16+i*8+c*1.5)*s;
+      for(let i=0;i<4;i++){
+        const fx=(-18+i*9)*s;
         ctx.beginPath();
-        ctx.moveTo(fx,-hh+4*s+c*2*s);
-        ctx.quadraticCurveTo(fx+3*s,-hh-5*s+c*3*s,fx+5*s,-hh+4*s+c*2*s);
-        ctx.lineTo(fx+5*s,-hh+15*s);ctx.lineTo(fx,-hh+15*s);ctx.closePath();ctx.fill();
+        ctx.moveTo(fx,-hh+16*s+c*2*s);
+        ctx.quadraticCurveTo(fx+4.5*s,-hh+7*s+c*3*s,fx+9*s,-hh+16*s+c*2*s);
+        ctx.lineTo(fx+9*s,-hh+26*s);ctx.lineTo(fx,-hh+26*s);ctx.closePath();ctx.fill();
       }
     }
     // Cab
