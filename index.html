@@ -5,299 +5,287 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NRKade — Arcade</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;700;900&display=swap');
-
-  :root {
-    --bg:        #0d0d18;
-    --bg2:       #13131f;
-    --panel:     #1a1a2e;
-    --accent1:   #ff3c3c;
-    --accent2:   #ffdd00;
-    --accent3:   #00e5ff;
-    --accent4:   #b94fff;
-    --text:      #f0f0f8;
-    --subtext:   #8888aa;
-    --border:    rgba(255,255,255,0.07);
-    --glow1:     rgba(255,60,60,0.35);
-    --glow3:     rgba(0,229,255,0.25);
-  }
-
-  * { margin:0; padding:0; box-sizing:border-box; }
-
-  html, body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Nunito', system-ui, sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* ── SCANLINE OVERLAY ── */
-  body::before {
-    content:'';
-    position:fixed; inset:0; z-index:999; pointer-events:none;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 3px,
-      rgba(0,0,0,0.07) 3px,
-      rgba(0,0,0,0.07) 4px
-    );
-  }
-
-  /* ── HEADER ── */
-  header {
-    position: relative;
-    padding: 40px 24px 24px;
-    text-align: center;
-    border-bottom: 1px solid var(--border);
-    background: radial-gradient(ellipse at 50% 0%, rgba(185,79,255,0.12) 0%, transparent 65%);
-    overflow: hidden;
-  }
-
-  /* neon grid floor in header */
-  header::after {
-    content:'';
-    position:absolute; bottom:0; left:0; right:0; height:60px; pointer-events:none;
-    background:
-      linear-gradient(to right, transparent 0%, rgba(185,79,255,0.06) 50%, transparent 100%);
-  }
-
-  .arcade-badge {
-    display: inline-block;
-    font-family: 'Boogaloo', cursive;
-    font-size: clamp(13px, 2vw, 16px);
-    letter-spacing: 6px;
-    color: var(--accent4);
-    text-transform: uppercase;
-    margin-bottom: 10px;
-    text-shadow: 0 0 16px var(--accent4);
-  }
-
-  h1 {
-    margin: 0;
-    line-height: 1;
-    text-align: center;
-  }
-  h1 img {
-    display: inline-block;
-    max-height: clamp(50px, 8vw, 90px);
-    width: auto;
-    max-width: 80vw;
-    filter: drop-shadow(0 0 18px rgba(255,80,0,0.55)) drop-shadow(0 0 6px rgba(255,160,0,0.4));
-  }
-
-  .header-sub {
-    margin-top: 12px;
-    font-size: clamp(13px, 2vw, 16px);
-    color: var(--subtext);
-    letter-spacing: 2px;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-
-  .header-sub span {
-    color: var(--accent3);
-    text-shadow: 0 0 12px var(--accent3);
-  }
-
-  /* ── MAIN CONTENT ── */
-  main {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 48px 24px 80px;
-  }
-
-  .section-title {
-    font-family: 'Boogaloo', cursive;
-    font-size: clamp(18px, 3vw, 26px);
-    letter-spacing: 4px;
-    color: var(--subtext);
-    text-transform: uppercase;
-    margin-bottom: 28px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .section-title::after {
-    content:'';
-    flex:1;
-    height:1px;
-    background: var(--border);
-  }
-
-  /* ── GAME GRID ── */
-  .game-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 24px;
-  }
-
-  /* ── GAME CARD ── */
-  .game-card {
-    position: relative;
-    border-radius: 18px;
-    overflow: hidden;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    cursor: pointer;
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-    text-decoration: none;
-    display: block;
-  }
-  .game-card:hover {
-    transform: translateY(-6px) scale(1.01);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px var(--card-glow, rgba(255,60,60,0.2));
-    border-color: var(--card-color, var(--accent1));
-  }
-
-  /* card thumbnail area */
-  .card-thumb {
-    width:100%;
-    aspect-ratio: 3/2;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    position:relative;
-    overflow:hidden;
-  }
-
-  /* animated arena thumbnail for Destruction Derby */
-  .thumb-derby {
-    background: radial-gradient(ellipse at 50% 50%, #5a3010 0%, #3a1e08 60%, #1e0d02 100%);
-  }
-  .thumb-derby canvas {
-    width:100%; height:100%;
-    opacity:0.9;
-  }
-
-  /* coming-soon card style */
-  .card-coming {
-    opacity: 0.45;
-    cursor: default;
-    pointer-events: none;
-  }
-  .card-coming:hover { transform:none; box-shadow:none; border-color: var(--border); }
-
-  .thumb-coming {
-    background: var(--bg2);
-    font-size: 56px;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .thumb-coming .coming-label {
-    font-family: 'Boogaloo', cursive;
-    font-size: 13px;
-    letter-spacing: 4px;
-    color: var(--subtext);
-    text-transform: uppercase;
-  }
-
-  /* card info */
-  .card-info {
-    padding: 16px 18px 18px;
-  }
-  .card-title {
-    font-family: 'Boogaloo', cursive;
-    font-size: 24px;
-    letter-spacing: 2px;
-    line-height: 1.1;
-    margin-bottom: 5px;
-  }
-  .card-desc {
-    font-size: 13px;
-    color: var(--subtext);
-    line-height: 1.5;
-    margin-bottom: 12px;
-  }
-  .card-tags {
-    display:flex; gap:6px; flex-wrap:wrap;
-  }
-  .tag {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    padding: 3px 8px;
-    border-radius: 6px;
-    border: 1px solid;
-  }
-
-  /* PLAY button */
-  .card-play {
-    position:absolute;
-    top:12px; right:12px;
-    background: var(--card-color, var(--accent1));
-    color: #000;
-    font-family: 'Boogaloo', cursive;
-    font-size: 13px;
-    letter-spacing: 2px;
-    padding: 5px 12px;
-    border-radius: 8px;
-    text-transform: uppercase;
-    opacity:0;
-    transform: translateY(-4px);
-    transition: opacity 0.15s, transform 0.15s;
-    pointer-events:none;
-  }
-  .game-card:hover .card-play {
-    opacity:1;
-    transform:translateY(0);
-  }
-
-  /* ── DESTRUCTION DERBY SPECIFIC ── */
-  .card-destruction-derby {
-    --card-color: #ff3c3c;
-    --card-glow: rgba(255,60,60,0.25);
-  }
-
-  /* ── FOOTER ── */
-  footer {
-    text-align:center;
-    padding: 24px;
-    border-top: 1px solid var(--border);
-    font-size: 13px;
-    color: var(--subtext);
-    letter-spacing: 2px;
-  }
-  footer strong {
-    color: var(--accent2);
-    font-weight:900;
-  }
-
-  /* ── MARQUEE ── */
-  .marquee-wrap {
-    overflow:hidden;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    background: var(--bg2);
-    padding: 10px 0;
-    margin: 0 0 48px;
-  }
-  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-  .marquee-inner {
-    display:inline-flex;
-    gap: 48px;
-    white-space:nowrap;
-    animation: marquee 24s linear infinite;
-    font-family: 'Boogaloo', cursive;
-    font-size: 14px;
-    letter-spacing: 3px;
-    color: var(--subtext);
-    text-transform: uppercase;
-  }
-  .marquee-inner span { color: var(--accent2); }
-
-  /* ── LIVE PREVIEW CANVAS IN CARD ── */
-  #previewCanvas {
-    width:100%;
-    height:100%;
-    display:block;
-  }
+@import url('https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;700;900&display=swap');
+:root {
+  --bg: #0d0d18;
+  --bg2: #13131f;
+  --panel: #1a1a2e;
+  --accent1: #ff3c3c;
+  --accent2: #ffdd00;
+  --accent3: #00e5ff;
+  --accent4: #b94fff;
+  --text: #f0f0f8;
+  --subtext: #8888aa;
+  --border: rgba(255,255,255,0.07);
+  --glow1: rgba(255,60,60,0.35);
+  --glow3: rgba(0,229,255,0.25);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Nunito', system-ui, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+/* ── SCANLINE OVERLAY ── */
+body::before {
+  content:'';
+  position:fixed; inset:0; z-index:999; pointer-events:none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0,0,0,0.07) 3px,
+    rgba(0,0,0,0.07) 4px
+  );
+}
+/* ── HEADER ── */
+header {
+  position: relative;
+  padding: 40px 24px 24px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  background: radial-gradient(ellipse at 50% 0%, rgba(185,79,255,0.12) 0%, transparent 65%);
+  overflow: hidden;
+}
+/* neon grid floor in header */
+header::after {
+  content:'';
+  position:absolute; bottom:0; left:0; right:0; height:60px; pointer-events:none;
+  background:
+    linear-gradient(to right, transparent 0%, rgba(185,79,255,0.06) 50%, transparent 100%);
+}
+.arcade-badge {
+  display: inline-block;
+  font-family: 'Boogaloo', cursive;
+  font-size: clamp(13px, 2vw, 16px);
+  letter-spacing: 6px;
+  color: var(--accent4);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  text-shadow: 0 0 16px var(--accent4);
+}
+h1 {
+  margin: 0;
+  line-height: 1;
+  text-align: center;
+}
+h1 img {
+  display: inline-block;
+  max-height: clamp(50px, 8vw, 90px);
+  width: auto;
+  max-width: 80vw;
+  filter: drop-shadow(0 0 18px rgba(255,80,0,0.55)) drop-shadow(0 0 6px rgba(255,160,0,0.4));
+}
+.header-sub {
+  margin-top: 12px;
+  font-size: clamp(13px, 2vw, 16px);
+  color: var(--subtext);
+  letter-spacing: 2px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.header-sub span {
+  color: var(--accent3);
+  text-shadow: 0 0 12px var(--accent3);
+}
+/* ── MAIN CONTENT ── */
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
+.section-title {
+  font-family: 'Boogaloo', cursive;
+  font-size: clamp(18px, 3vw, 26px);
+  letter-spacing: 4px;
+  color: var(--subtext);
+  text-transform: uppercase;
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.section-title::after {
+  content:'';
+  flex:1;
+  height:1px;
+  background: var(--border);
+}
+/* ── GAME GRID ── */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+/* ── GAME CARD ── */
+.game-card {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  text-decoration: none;
+  display: block;
+}
+.game-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px var(--card-glow, rgba(255,60,60,0.2));
+  border-color: var(--card-color, var(--accent1));
+}
+/* card thumbnail area */
+.card-thumb {
+  width:100%;
+  aspect-ratio: 3/2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  overflow:hidden;
+}
+/* animated arena thumbnail for Destruction Derby */
+.thumb-derby {
+  background: radial-gradient(ellipse at 50% 50%, #5a3010 0%, #3a1e08 60%, #1e0d02 100%);
+}
+.thumb-derby canvas {
+  width:100%; height:100%;
+  opacity:0.9;
+}
+/* animated canyon thumbnail for Canyon Racer */
+.thumb-canyon {
+  background: linear-gradient(180deg, #180830 0%, #6a2008 40%, #d86018 70%, #f09030 100%);
+}
+.thumb-canyon canvas {
+  width:100%; height:100%;
+  opacity:0.9;
+}
+/* coming-soon card style */
+.card-coming {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+.card-coming:hover { transform:none; box-shadow:none; border-color: var(--border); }
+.thumb-coming {
+  background: var(--bg2);
+  font-size: 56px;
+  flex-direction: column;
+  gap: 8px;
+}
+.thumb-coming .coming-label {
+  font-family: 'Boogaloo', cursive;
+  font-size: 13px;
+  letter-spacing: 4px;
+  color: var(--subtext);
+  text-transform: uppercase;
+}
+/* card info */
+.card-info {
+  padding: 16px 18px 18px;
+}
+.card-title {
+  font-family: 'Boogaloo', cursive;
+  font-size: 24px;
+  letter-spacing: 2px;
+  line-height: 1.1;
+  margin-bottom: 5px;
+}
+.card-desc {
+  font-size: 13px;
+  color: var(--subtext);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+.card-tags {
+  display:flex; gap:6px; flex-wrap:wrap;
+}
+.tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid;
+}
+/* PLAY button */
+.card-play {
+  position:absolute;
+  top:12px; right:12px;
+  background: var(--card-color, var(--accent1));
+  color: #000;
+  font-family: 'Boogaloo', cursive;
+  font-size: 13px;
+  letter-spacing: 2px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  opacity:0;
+  transform: translateY(-4px);
+  transition: opacity 0.15s, transform 0.15s;
+  pointer-events:none;
+}
+.game-card:hover .card-play {
+  opacity:1;
+  transform:translateY(0);
+}
+/* ── DESTRUCTION DERBY SPECIFIC ── */
+.card-destruction-derby {
+  --card-color: #ff3c3c;
+  --card-glow: rgba(255,60,60,0.25);
+}
+/* ── CANYON RACER SPECIFIC ── */
+.card-canyon-racer {
+  --card-color: #ff8800;
+  --card-glow: rgba(255,136,0,0.25);
+}
+/* ── FOOTER ── */
+footer {
+  text-align:center;
+  padding: 24px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--subtext);
+  letter-spacing: 2px;
+}
+footer strong {
+  color: var(--accent2);
+  font-weight:900;
+}
+/* ── MARQUEE ── */
+.marquee-wrap {
+  overflow:hidden;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  padding: 10px 0;
+  margin: 0 0 48px;
+}
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.marquee-inner {
+  display:inline-flex;
+  gap: 48px;
+  white-space:nowrap;
+  animation: marquee 24s linear infinite;
+  font-family: 'Boogaloo', cursive;
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: var(--subtext);
+  text-transform: uppercase;
+}
+.marquee-inner span { color: var(--accent2); }
+/* ── LIVE PREVIEW CANVAS IN CARD ── */
+#previewCanvas, #canyonPreview {
+  width:100%;
+  height:100%;
+  display:block;
+}
 </style>
 </head>
 <body>
-
 <header>
   <div class="arcade-badge">🕹️ Est. 2026</div>
   <h1><img src="/assets/logo.png" alt="NRKade"></h1>
@@ -306,12 +294,14 @@
 
 <div class="marquee-wrap">
   <div class="marquee-inner">
-    <span>NEW!</span> DESTRUCTION DERBY IS LIVE &nbsp;·&nbsp;
+    <span>NEW!</span> CANYON RACER IS LIVE &nbsp;·&nbsp;
+    <span>🏜️</span> OUTRUN-STYLE DESERT RACING &nbsp;·&nbsp;
     <span>🛻</span> MONSTER TRUCK ARENA &nbsp;·&nbsp;
     <span>🚀</span> SPACE BATTLE MODE &nbsp;·&nbsp;
     <span>💀</span> 3 DIFFICULTY LEVELS &nbsp;·&nbsp;
     <span>🔥</span> BOOST YOUR WAY TO VICTORY &nbsp;·&nbsp;
-    <span>NEW!</span> DESTRUCTION DERBY IS LIVE &nbsp;·&nbsp;
+    <span>NEW!</span> CANYON RACER IS LIVE &nbsp;·&nbsp;
+    <span>🏜️</span> OUTRUN-STYLE DESERT RACING &nbsp;·&nbsp;
     <span>🛻</span> MONSTER TRUCK ARENA &nbsp;·&nbsp;
     <span>🚀</span> SPACE BATTLE MODE &nbsp;·&nbsp;
     <span>💀</span> 3 DIFFICULTY LEVELS &nbsp;·&nbsp;
@@ -321,7 +311,6 @@
 
 <main>
   <div class="section-title">🎮 Games</div>
-
   <div class="game-grid">
 
     <!-- DESTRUCTION DERBY -->
@@ -341,21 +330,24 @@
       </div>
     </a>
 
-    <!-- COMING SOON SLOTS -->
-    <div class="game-card card-coming">
-      <div class="card-thumb thumb-coming">
-        <div>🎯</div>
-        <div class="coming-label">Coming Soon</div>
+    <!-- CANYON RACER -->
+    <a href="canyon-racer.html" class="game-card card-canyon-racer">
+      <div class="card-thumb thumb-canyon">
+        <canvas id="canyonPreview"></canvas>
       </div>
+      <div class="card-play">▶ PLAY</div>
       <div class="card-info">
-        <div class="card-title" style="color:var(--subtext);">??? GAME 2</div>
-        <div class="card-desc">The next creation is in the works...</div>
+        <div class="card-title" style="color:#ff8800;">🏜️ CANYON RACER</div>
+        <div class="card-desc">OutRun-style desert circuit racing. Beat the Skull Crusher across 3, 5, or 7 laps through sun-scorched canyons.</div>
         <div class="card-tags">
-          <span class="tag" style="color:var(--subtext);border-color:rgba(136,136,170,0.2);background:rgba(136,136,170,0.05);">Mystery</span>
+          <span class="tag" style="color:#ff8800;border-color:#ff880044;background:rgba(255,136,0,0.08);">Racing</span>
+          <span class="tag" style="color:#ffdd00;border-color:#ffdd0044;background:rgba(255,221,0,0.08);">1 Player</span>
+          <span class="tag" style="color:#00e5ff;border-color:#00e5ff44;background:rgba(0,229,255,0.08);">Mobile</span>
         </div>
       </div>
-    </div>
+    </a>
 
+    <!-- COMING SOON SLOT -->
     <div class="game-card card-coming">
       <div class="card-thumb thumb-coming">
         <div>🌟</div>
@@ -383,13 +375,12 @@
   const canvas = document.getElementById('previewCanvas');
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
-
   let dirtGrad = null;
   let angle1 = 0, angle2 = Math.PI;
 
   function resize() {
     const rect = canvas.getBoundingClientRect();
-    canvas.width  = rect.width  * devicePixelRatio;
+    canvas.width = rect.width * devicePixelRatio;
     canvas.height = rect.height * devicePixelRatio;
     ctx.scale(devicePixelRatio, devicePixelRatio);
     dirtGrad = null; // invalidate gradient on resize
@@ -512,8 +503,10 @@
     const W = canvas.width / devicePixelRatio;
     const H = canvas.height / devicePixelRatio;
     const cx = W/2, cy = H/2;
+
     // Orbit radius — trucks are ~28px wide at s=0.5, so keep them well inside
     const r = Math.min(W, H) * 0.30;
+
     // Scale trucks to fit nicely in the card preview
     const s = Math.min(W, H) / 320;
 
@@ -546,6 +539,7 @@
     for(let x=pw;x<W-pw;x+=pw2){ctx.fillStyle=planks[Math.floor(x/pw2)%4];ctx.fillRect(x,H-pw,pw2,pw);ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(x,H-pw,1,pw);}
     for(let y=pw;y<H-pw;y+=pw2){ctx.fillStyle=planks[Math.floor(y/pw2)%4];ctx.fillRect(0,y,pw,pw2);ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(0,y,pw,1);}
     for(let y=pw;y<H-pw;y+=pw2){ctx.fillStyle=planks[Math.floor(y/pw2)%4];ctx.fillRect(W-pw,y,pw,pw2);ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(W-pw,y,pw,1);}
+
     // Corner posts
     ctx.fillStyle='#3D1F08';
     for(const [qx,qy] of [[0,0],[W-pw,0],[0,H-pw],[W-pw,H-pw]]){ctx.fillRect(qx,qy,pw,pw);}
@@ -571,9 +565,315 @@
 
     angle1 += 0.016;
     angle2 += 0.016;
+
     requestAnimationFrame(draw);
   }
+  draw();
+})();
 
+// ── ANIMATED PREVIEW: Canyon Racer Lego-style pseudo-3D road ───────────────
+(function() {
+  const canvas = document.getElementById('canyonPreview');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let t = 0;
+
+  // Try to load sprite — falls back to canvas-drawn car
+  let playerSprite = null;
+  const sprImg = new Image();
+  sprImg.src = 'flame-dashcar.png';
+  sprImg.onload = () => { playerSprite = sprImg; };
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * devicePixelRatio;
+    canvas.height = rect.height * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+  }
+  resize();
+  new ResizeObserver(resize).observe(canvas);
+
+  // ── Lego helpers (simplified from game) ──
+  function legoBrick(x,y,w,h,col){
+    const r=Math.max(1,Math.min(w,h)*0.06);
+    ctx.fillStyle=col;
+    ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.22)';
+    ctx.beginPath();ctx.roundRect(x,y,w,h*0.18,r);ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,0.25)';
+    ctx.fillRect(x,y+h*0.82,w,h*0.18);
+    ctx.fillStyle='rgba(0,0,0,0.15)';
+    ctx.fillRect(x+w*0.88,y,w*0.12,h);
+  }
+
+  function legoStud(cx,cy,r,col){
+    const sideH=r*0.35;
+    ctx.fillStyle='rgba(0,0,0,0.30)';
+    ctx.fillRect(cx-r,cy,r*2,sideH);
+    if(col){ctx.fillStyle=col;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();}
+    ctx.fillStyle='rgba(255,255,255,0.35)';
+    ctx.beginPath();ctx.arc(cx-r*0.2,cy-r*0.2,r*0.45,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.25)';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+  }
+
+  function drawRectStuds(x,y,w,bh,col){
+    const sH=Math.max(1.5,bh*0.28),sW=Math.max(2,bh*0.55),gap=Math.max(1,bh*0.18);
+    const pitch=sW+gap;
+    const n=Math.max(1,Math.floor((w-gap)/pitch));
+    const totalW=n*pitch-gap;
+    const startX=x+(w-totalW)/2;
+    ctx.fillStyle=col||'rgba(255,255,255,0.55)';
+    for(let i=0;i<n;i++){
+      const sx=startX+i*pitch;
+      ctx.fillRect(sx,y-sH,sW,sH);
+      ctx.fillStyle='rgba(255,255,255,0.4)';ctx.fillRect(sx,y-sH,sW,sH*0.35);
+      ctx.fillStyle='rgba(0,0,0,0.18)';ctx.fillRect(sx+sW*0.72,y-sH,sW*0.28,sH);
+      ctx.fillStyle=col||'rgba(255,255,255,0.55)';
+    }
+  }
+
+  function legoCanyon(baseY,heights,colLight,colDark,brickH,W){
+    const bw=W/heights.length;
+    for(let i=0;i<heights.length;i++){
+      const bh=heights[i];
+      const by=baseY-bh;
+      const col=i%2===0?colLight:colDark;
+      legoBrick(i*bw,by,bw+1,bh,col);
+      drawRectStuds(i*bw,by,bw+1,brickH,col==='#7a2a0a'?'rgba(160,80,40,0.9)':'rgba(120,55,25,0.9)');
+    }
+  }
+
+  function draw() {
+    const W = canvas.width / devicePixelRatio;
+    const H = canvas.height / devicePixelRatio;
+    const hz = H * 0.38;
+
+    // Sky gradient — canyon orange/purple
+    const skyG = ctx.createLinearGradient(0, 0, 0, hz);
+    skyG.addColorStop(0, '#1a0a3a');
+    skyG.addColorStop(0.35, '#6a1c08');
+    skyG.addColorStop(0.72, '#cc5010');
+    skyG.addColorStop(1, '#e8801a');
+    ctx.fillStyle = skyG;
+    ctx.fillRect(0, 0, W, hz);
+
+    // ── Lego clouds ──
+    const clouds=[
+      {x:W*.05,y:hz*.18,w:W*.14,h:H*.04},
+      {x:W*.42,y:hz*.22,w:W*.16,h:H*.05},
+      {x:W*.82,y:hz*.25,w:W*.13,h:H*.04},
+    ];
+    for(const cl of clouds){
+      const rh=cl.h/2;
+      legoBrick(cl.x+cl.w*.08,cl.y,cl.w*.84,rh,'rgba(255,210,160,0.28)');
+      legoBrick(cl.x,cl.y+rh,cl.w,rh,'rgba(255,210,160,0.28)');
+      drawRectStuds(cl.x+cl.w*.08,cl.y,cl.w*0.84,rh,'rgba(255,220,170,0.45)');
+    }
+
+    // ── Lego sun — square brick with stud ──
+    const sunX=W*.72, sunY=hz*.42, sunS=H*.075;
+    legoBrick(sunX-sunS/2,sunY-sunS/2,sunS,sunS,'#ffe040');
+    legoStud(sunX,sunY,sunS*0.32,'#ffd000');
+    const sg=ctx.createRadialGradient(sunX,sunY,sunS*.2,sunX,sunY,sunS*1.8);
+    sg.addColorStop(0,'rgba(255,200,0,0.22)');sg.addColorStop(1,'rgba(255,90,0,0)');
+    ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sunX,sunY,sunS*1.8,0,Math.PI*2);ctx.fill();
+
+    // ── Lego canyon walls — stepped blocky bricks with studs ──
+    const brickH=H*.025;
+    const h1=[];
+    for(let i=0;i<16;i++){
+      const raw=H*.12*(.5+.5*Math.sin(i*.29+1.1)+.3*Math.sin(i*.59));
+      h1.push(Math.round(raw/brickH)*brickH);
+    }
+    legoCanyon(hz,h1,'#7a2a0a','#5a1e06',brickH,W);
+
+    const h2=[];
+    for(let i=0;i<12;i++){
+      const raw=H*.06*(.4+.6*Math.sin(i*.36+2.4));
+      h2.push(Math.round(raw/brickH)*brickH);
+    }
+    legoCanyon(hz,h2,'#4a1808','#381206',brickH,W);
+
+    // Ground
+    const gndG=ctx.createLinearGradient(0,hz,0,H);
+    gndG.addColorStop(0,'#b86828');gndG.addColorStop(1,'#6a3018');
+    ctx.fillStyle=gndG;ctx.fillRect(0,hz,W,H-hz);
+
+    // Pseudo-3D road with animated curve
+    const roadH = H - hz;
+    const VIS = 40;
+    let wx = 0, xx = 0;
+    const cxArr = [];
+    for (let i = 0; i <= VIS; i++) {
+      const curve = Math.sin((i * 0.06) + t * 0.02) * 0.08;
+      wx += curve * 4.0;
+      xx += wx;
+      cxArr.push(W / 2 + xx);
+    }
+
+    for (let i = VIS - 1; i >= 0; i--) {
+      const y1 = H - roadH * Math.pow((i + 1) / VIS, 0.45);
+      const y2 = H - roadH * Math.pow(i / VIS, 0.45);
+      const w1 = Math.max(2, W * 0.55 * Math.pow(1 - (i + 1) / VIS, 0.7));
+      const w2 = Math.max(2, W * 0.55 * Math.pow(1 - i / VIS, 0.7));
+      const c1 = cxArr[i + 1], c2 = cxArr[i];
+      const alt = Math.floor((i + Math.floor(t * 0.3)) / 2) % 2 === 0;
+
+      // Grass — Lego plates
+      const grassCol = alt ? '#3a7a2a' : '#4a8a38';
+      ctx.fillStyle = grassCol;
+      ctx.beginPath();
+      ctx.moveTo(c1 - w1 * 1.35, y1); ctx.lineTo(c1 + w1 * 1.35, y1);
+      ctx.lineTo(c2 + w2 * 1.35, y2); ctx.lineTo(c2 - w2 * 1.35, y2);
+      ctx.closePath(); ctx.fill();
+      // Rect studs on grass (close segments only)
+      if(i<30&&i>0){
+        const stripH=Math.max(2,y2-y1);
+        const sCol=alt?'rgba(55,120,35,0.9)':'rgba(68,140,45,0.9)';
+        drawRectStuds(c2-w2*1.35,y2,w2*2.7,stripH,sCol);
+      }
+
+      // Road — clean flat grey plate
+      ctx.fillStyle = alt ? '#888078' : '#928a80';
+      ctx.beginPath();
+      ctx.moveTo(c1 - w1, y1); ctx.lineTo(c1 + w1, y1);
+      ctx.lineTo(c2 + w2, y2); ctx.lineTo(c2 - w2, y2);
+      ctx.closePath(); ctx.fill();
+
+      // Kerbs with studs
+      const k1 = w1 * 0.11, k2 = w2 * 0.11;
+      const kerbCol = alt ? '#cc2200' : '#f0ece0';
+      ctx.fillStyle = kerbCol;
+      ctx.beginPath();
+      ctx.moveTo(c1 - w1, y1); ctx.lineTo(c1 - w1 + k1, y1);
+      ctx.lineTo(c2 - w2 + k2, y2); ctx.lineTo(c2 - w2, y2);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(c1 + w1 - k1, y1); ctx.lineTo(c1 + w1, y1);
+      ctx.lineTo(c2 + w2, y2); ctx.lineTo(c2 + w2 - k2, y2);
+      ctx.closePath(); ctx.fill();
+      if(i<25&&i>0){
+        const stripH=Math.max(2,y2-y1);
+        const kCol=alt?'rgba(180,40,15,0.9)':'rgba(230,225,210,0.9)';
+        drawRectStuds(c2-w2,y2,k2,stripH,kCol);
+        drawRectStuds(c2+w2-k2,y2,k2,stripH,kCol);
+      }
+
+      // Centre dashes
+      if (alt) {
+        const d = Math.max(1, w2 * 0.025);
+        ctx.fillStyle = 'rgba(255,255,200,0.7)';
+        ctx.beginPath();
+        ctx.moveTo(c1 - d, y1); ctx.lineTo(c1 + d, y1);
+        ctx.lineTo(c2 + d, y2); ctx.lineTo(c2 - d, y2);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+
+    // Player car — sprite or canvas fallback
+    const carX = W / 2;
+    const carY = H * 0.95;
+    const cw = W * 0.32;
+    const ch = cw * 0.62;
+    const cty = carY - ch;
+
+    if (playerSprite) {
+      const iw = cw * 1.1, ih = iw * (playerSprite.height / playerSprite.width);
+      ctx.drawImage(playerSprite, carX - iw / 2, carY - ih, iw, ih);
+    } else {
+      ctx.save();
+      ctx.translate(carX, 0);
+
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.beginPath(); ctx.ellipse(0, carY + 4, cw * 0.54, ch * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+
+      // Wheels
+      ctx.fillStyle = '#111';
+      ctx.beginPath(); ctx.roundRect(-cw * 0.58, cty + ch * 0.55, cw * 0.14, ch * 0.45, cw * 0.03); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(cw * 0.44, cty + ch * 0.55, cw * 0.14, ch * 0.45, cw * 0.03); ctx.fill();
+      ctx.fillStyle = '#880808';
+      ctx.beginPath(); ctx.roundRect(-cw * 0.62, cty + ch * 0.46, cw * 0.2, ch * 0.54, cw * 0.05); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(cw * 0.42, cty + ch * 0.46, cw * 0.2, ch * 0.54, cw * 0.05); ctx.fill();
+      ctx.fillStyle = '#111';
+      ctx.beginPath(); ctx.roundRect(-cw * 0.6, cty + ch * 0.5, cw * 0.16, ch * 0.5, cw * 0.03); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(cw * 0.44, cty + ch * 0.5, cw * 0.16, ch * 0.5, cw * 0.03); ctx.fill();
+
+      // Body
+      ctx.fillStyle = '#cc1111';
+      ctx.beginPath();
+      ctx.moveTo(-cw * 0.5, carY); ctx.lineTo(cw * 0.5, carY);
+      ctx.lineTo(cw * 0.5, cty + ch * 0.3); ctx.lineTo(cw * 0.4, cty);
+      ctx.lineTo(-cw * 0.4, cty); ctx.lineTo(-cw * 0.5, cty + ch * 0.3);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#dd1818';
+      ctx.beginPath();
+      ctx.moveTo(-cw * 0.48, carY - ch * 0.05); ctx.lineTo(cw * 0.48, carY - ch * 0.05);
+      ctx.lineTo(cw * 0.38, cty + ch * 0.12); ctx.lineTo(-cw * 0.38, cty + ch * 0.12);
+      ctx.closePath(); ctx.fill();
+
+      // Roof + window
+      ctx.fillStyle = '#aa0e0e';
+      ctx.beginPath(); ctx.roundRect(-cw * 0.38, cty, cw * 0.76, ch * 0.36, cw * 0.04); ctx.fill();
+      ctx.fillStyle = '#050a10';
+      ctx.beginPath();
+      ctx.moveTo(-cw * 0.33, cty + ch * 0.02); ctx.lineTo(cw * 0.33, cty + ch * 0.02);
+      ctx.lineTo(cw * 0.29, cty + ch * 0.33); ctx.lineTo(-cw * 0.29, cty + ch * 0.33);
+      ctx.closePath(); ctx.fill();
+
+      // Flames
+      const fc = ['#ff5500', '#ffaa00', '#ffee00'];
+      for (let c = 0; c < 3; c++) {
+        ctx.fillStyle = fc[c];
+        for (let f = 0; f < 5; f++) {
+          const fx = -cw * 0.38 + f * cw * 0.19;
+          const fy = cty + ch * 0.38 + c * ch * 0.04;
+          const fw = cw * 0.09 - c * cw * 0.015, fh = ch * 0.2 - c * ch * 0.04;
+          ctx.beginPath();
+          ctx.moveTo(fx, fy + fh);
+          ctx.quadraticCurveTo(fx + fw * 0.5, fy, fx + fw, fy + fh);
+          ctx.lineTo(fx + fw, fy + fh * 1.05); ctx.lineTo(fx, fy + fh * 1.05);
+          ctx.closePath(); ctx.fill();
+        }
+      }
+
+      // Checkered bumper
+      const stripeH = ch * 0.09, stripeY2 = carY - stripeH;
+      const sq = stripeH, stripeW = cw * 0.88;
+      for (let sx = -stripeW / 2; sx < stripeW / 2; sx += sq) {
+        ctx.fillStyle = Math.floor((sx + stripeW / 2) / sq) % 2 === 0 ? '#fff' : '#990000';
+        ctx.fillRect(sx, stripeY2, Math.min(sq, stripeW / 2 - sx), stripeH);
+      }
+
+      // Taillights
+      ctx.fillStyle = '#ff1100'; ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 8;
+      ctx.beginPath(); ctx.roundRect(-cw * 0.48, cty + ch * 0.7, cw * 0.2, ch * 0.16, cw * 0.02); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(cw * 0.28, cty + ch * 0.7, cw * 0.2, ch * 0.16, cw * 0.02); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#330000';
+      ctx.beginPath(); ctx.roundRect(-cw * 0.25, cty + ch * 0.76, cw * 0.5, ch * 0.08, cw * 0.01); ctx.fill();
+
+      // Spoiler
+      ctx.fillStyle = '#880808';
+      ctx.beginPath(); ctx.roundRect(-cw * 0.46, cty - ch * 0.07, cw * 0.92, ch * 0.06, cw * 0.01); ctx.fill();
+      ctx.fillStyle = '#aa1010';
+      ctx.fillRect(-cw * 0.32, cty - ch * 0.07, cw * 0.04, ch * 0.09);
+      ctx.fillRect(cw * 0.28, cty - ch * 0.07, cw * 0.04, ch * 0.09);
+
+      // Number plate
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.roundRect(-cw * 0.1, carY - ch * 0.22, cw * 0.2, ch * 0.12, cw * 0.01); ctx.fill();
+      ctx.fillStyle = '#cc1111';
+      ctx.font = `bold ${Math.round(cw * 0.12)}px Trebuchet MS`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('1', 0, carY - ch * 0.16);
+
+      ctx.restore();
+    }
+
+    t++;
+    requestAnimationFrame(draw);
+  }
   draw();
 })();
 </script>
