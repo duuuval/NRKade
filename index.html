@@ -162,6 +162,13 @@ main {
   width:100%; height:100%;
   opacity:0.9;
 }
+/* animated yard thumbnail for Poopie Stomper */
+.thumb-poopie {
+  background: linear-gradient(180deg, #87ceeb 0%, #b8e0a8 35%, #7cc26b 100%);
+}
+.thumb-poopie canvas {
+  width:100%; height:100%;
+}
 /* coming-soon card style */
 .card-coming {
   opacity: 0.45;
@@ -242,6 +249,11 @@ main {
   --card-color: #ff8800;
   --card-glow: rgba(255,136,0,0.25);
 }
+/* ── POOPIE STOMPER SPECIFIC ── */
+.card-poopie-stomper {
+  --card-color: #8b5a2b;
+  --card-glow: rgba(139,90,43,0.3);
+}
 /* ── FOOTER ── */
 footer {
   text-align:center;
@@ -283,6 +295,221 @@ footer strong {
   height:100%;
   display:block;
 }
+
+/* ── POOPIE STOMPER PREVIEW SCENE ──
+   DOM mirrors the actual game source so the preview matches 1:1.
+   Game-native dimensions are used; the whole scene is scaled to fit the card via JS. */
+.poopie-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /* Game-style yard background — also defined on .thumb-poopie above for the gradient */
+}
+/* Subtle grass blobs from the game's #yard::before */
+.poopie-scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(80, 160, 70, 0.4) 0%, transparent 8%),
+    radial-gradient(circle at 70% 90%, rgba(80, 160, 70, 0.3) 0%, transparent 6%),
+    radial-gradient(circle at 40% 70%, rgba(100, 180, 90, 0.35) 0%, transparent 7%),
+    radial-gradient(circle at 85% 60%, rgba(80, 160, 70, 0.3) 0%, transparent 5%),
+    radial-gradient(circle at 10% 50%, rgba(100, 180, 90, 0.3) 0%, transparent 6%);
+  pointer-events: none;
+}
+/* Sun (smaller than game's 70px since the card is small) */
+.ps-sun {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  background: radial-gradient(circle, #fff5a0 0%, #ffd24a 60%, #ffb347 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 16px rgba(255, 210, 74, 0.6);
+  animation: psPulse 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+@keyframes psPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+/* Poop emoji — matches the game's .poop */
+.ps-poop {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 50px;
+  animation: psPoopBob 2s ease-in-out infinite;
+  filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3));
+  pointer-events: none;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  line-height: 1;
+}
+.ps-poop.squish {
+  animation: psSquish 0.5s ease-out forwards;
+}
+@keyframes psPoopBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes psSquish {
+  0% { transform: scale(1); opacity: 1; }
+  40% { transform: scale(1.6, 0.3); opacity: 1; }
+  100% { transform: scale(2.2, 0.1); opacity: 0; }
+}
+
+/* Sparkle on squish */
+.ps-sparkle {
+  position: absolute;
+  pointer-events: none;
+  font-size: 22px;
+  animation: psSparkleUp 0.8s ease-out forwards;
+  z-index: 4;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  line-height: 1;
+}
+@keyframes psSparkleUp {
+  0% { transform: translate(0, 0) scale(0.5) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--dx), -50px) scale(1.2) rotate(360deg); opacity: 0; }
+}
+
+/* Dog — exact copy of game source dimensions/positions */
+.ps-dog {
+  position: absolute;
+  width: 120px;
+  height: 110px;
+  z-index: 5;
+  transform-origin: center bottom;
+}
+.ps-dog.wiggle .ps-dog-inner { animation: psWiggle 0.5s ease-in-out; }
+@keyframes psWiggle {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.15) rotate(-8deg); }
+  50% { transform: scale(0.9) rotate(0deg); }
+  75% { transform: scale(1.1) rotate(8deg); }
+}
+.ps-dog-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.ps-body {
+  position: absolute;
+  width: 90px;
+  height: 60px;
+  background: #1a1a1a;
+  border-radius: 50% 50% 45% 45%;
+  bottom: 10px;
+  left: 15px;
+  box-shadow: inset -8px -4px 0 rgba(0,0,0,0.3);
+}
+.ps-body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(60,60,60,0.8) 0%, transparent 15%),
+    radial-gradient(circle at 60% 50%, rgba(60,60,60,0.8) 0%, transparent 12%),
+    radial-gradient(circle at 80% 70%, rgba(60,60,60,0.8) 0%, transparent 14%),
+    radial-gradient(circle at 35% 75%, rgba(60,60,60,0.8) 0%, transparent 13%);
+}
+.ps-head {
+  position: absolute;
+  width: 70px;
+  height: 65px;
+  background: #1a1a1a;
+  border-radius: 50% 50% 45% 45%;
+  top: 5px;
+  left: 25px;
+  box-shadow: inset -4px -2px 0 rgba(0,0,0,0.3);
+}
+.ps-head::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image:
+    radial-gradient(circle at 25% 35%, rgba(60,60,60,0.9) 0%, transparent 18%),
+    radial-gradient(circle at 70% 45%, rgba(60,60,60,0.9) 0%, transparent 15%),
+    radial-gradient(circle at 50% 75%, rgba(60,60,60,0.9) 0%, transparent 16%);
+}
+.ps-ear-l, .ps-ear-r {
+  position: absolute;
+  width: 24px;
+  height: 38px;
+  background: #0d0d0d;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  top: 0px;
+}
+.ps-ear-l { left: 18px; transform: rotate(-15deg); }
+.ps-ear-r { right: 18px; transform: rotate(15deg); }
+.ps-eye-l, .ps-eye-r {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+  top: 28px;
+  z-index: 2;
+}
+.ps-eye-l { left: 42px; }
+.ps-eye-r { right: 42px; }
+.ps-eye-l::after, .ps-eye-r::after {
+  content: "";
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: black;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+}
+.ps-nose {
+  position: absolute;
+  width: 14px;
+  height: 10px;
+  background: #6b3410;
+  border-radius: 50%;
+  top: 42px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+.ps-tail {
+  position: absolute;
+  width: 14px;
+  height: 28px;
+  background: #1a1a1a;
+  border-radius: 50%;
+  top: 28px;
+  left: 5px;
+  transform-origin: bottom center;
+  animation: psWag 0.4s ease-in-out infinite;
+}
+@keyframes psWag {
+  0%, 100% { transform: rotate(-25deg); }
+  50% { transform: rotate(25deg); }
+}
+.ps-leg-1, .ps-leg-2 {
+  position: absolute;
+  width: 14px;
+  height: 18px;
+  background: #1a1a1a;
+  border-radius: 30% 30% 40% 40%;
+  bottom: -5px;
+}
+.ps-leg-1 { left: 28px; }
+.ps-leg-2 { right: 28px; }
 </style>
 </head>
 <body>
@@ -294,14 +521,16 @@ footer strong {
 
 <div class="marquee-wrap">
   <div class="marquee-inner">
-    <span>NEW!</span> CANYON RACER IS LIVE &nbsp;·&nbsp;
-    <span>🏜️</span> OUTRUN-STYLE DESERT RACING &nbsp;·&nbsp;
+    <span>NEW!</span> POOPIE STOMPER IS LIVE &nbsp;·&nbsp;
+    <span>🐾</span> SQUISH 'EM ALL &nbsp;·&nbsp;
+    <span>🏜️</span> CANYON RACER &nbsp;·&nbsp;
     <span>🛻</span> MONSTER TRUCK ARENA &nbsp;·&nbsp;
     <span>🚀</span> SPACE BATTLE MODE &nbsp;·&nbsp;
     <span>💀</span> 3 DIFFICULTY LEVELS &nbsp;·&nbsp;
     <span>🔥</span> BOOST YOUR WAY TO VICTORY &nbsp;·&nbsp;
-    <span>NEW!</span> CANYON RACER IS LIVE &nbsp;·&nbsp;
-    <span>🏜️</span> OUTRUN-STYLE DESERT RACING &nbsp;·&nbsp;
+    <span>NEW!</span> POOPIE STOMPER IS LIVE &nbsp;·&nbsp;
+    <span>🐾</span> SQUISH 'EM ALL &nbsp;·&nbsp;
+    <span>🏜️</span> CANYON RACER &nbsp;·&nbsp;
     <span>🛻</span> MONSTER TRUCK ARENA &nbsp;·&nbsp;
     <span>🚀</span> SPACE BATTLE MODE &nbsp;·&nbsp;
     <span>💀</span> 3 DIFFICULTY LEVELS &nbsp;·&nbsp;
@@ -347,6 +576,40 @@ footer strong {
       </div>
     </a>
 
+    <!-- POOPIE STOMPER -->
+    <a href="poopie-stomper.html" class="game-card card-poopie-stomper">
+      <div class="card-thumb thumb-poopie">
+        <div class="poopie-scene">
+          <div class="ps-sun"></div>
+          <div class="ps-dog">
+            <div class="ps-dog-inner">
+              <div class="ps-tail"></div>
+              <div class="ps-body"></div>
+              <div class="ps-leg-1"></div>
+              <div class="ps-leg-2"></div>
+              <div class="ps-head">
+                <div class="ps-ear-l"></div>
+                <div class="ps-ear-r"></div>
+                <div class="ps-eye-l"></div>
+                <div class="ps-eye-r"></div>
+                <div class="ps-nose"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card-play">▶ PLAY</div>
+      <div class="card-info">
+        <div class="card-title" style="color:#8b5a2b;">🐾 POOPIE STOMPER</div>
+        <div class="card-desc">Drag the doggo around the yard and squish all the poops! A silly stomp-'em-up the little ones can't put down.</div>
+        <div class="card-tags">
+          <span class="tag" style="color:#8b5a2b;border-color:#8b5a2b44;background:rgba(139,90,43,0.08);">Casual</span>
+          <span class="tag" style="color:#ffdd00;border-color:#ffdd0044;background:rgba(255,221,0,0.08);">Kids</span>
+          <span class="tag" style="color:#00e5ff;border-color:#00e5ff44;background:rgba(0,229,255,0.08);">Mobile</span>
+        </div>
+      </div>
+    </a>
+
     <!-- COMING SOON SLOT -->
     <div class="game-card card-coming">
       <div class="card-thumb thumb-coming">
@@ -354,7 +617,7 @@ footer strong {
         <div class="coming-label">Coming Soon</div>
       </div>
       <div class="card-info">
-        <div class="card-title" style="color:var(--subtext);">??? GAME 3</div>
+        <div class="card-title" style="color:var(--subtext);">??? GAME 4</div>
         <div class="card-desc">Something epic is being designed...</div>
         <div class="card-tags">
           <span class="tag" style="color:var(--subtext);border-color:rgba(136,136,170,0.2);background:rgba(136,136,170,0.05);">Mystery</span>
@@ -875,6 +1138,199 @@ footer strong {
     requestAnimationFrame(draw);
   }
   draw();
+})();
+
+// ── ANIMATED PREVIEW: Poopie Stomper — DOM mirror of the game (1:1 styles) ──
+// The actual game styles are cloned in CSS as `.ps-*` selectors. This script
+// just positions the dog, spawns poops, and triggers squish/sparkle effects on
+// arrival. Everything visual matches the game source.
+(function() {
+  const scene = document.querySelector('.poopie-scene');
+  if (!scene) return;
+  const dog = scene.querySelector('.ps-dog');
+
+  // The game uses a 120x110 dog and 60x60 poops. We render at native size and
+  // scale the entire scene to fit the card so proportions stay correct.
+  // Native scene coords — chosen to give the dog room to roam without crowding.
+  const SCENE_W = 480;
+  const SCENE_H = 320;
+  const DOG_W = 120, DOG_H = 110;
+  const POOP_W = 60;
+  const FOOT_OFFSET_X = DOG_W / 2;     // dog x is top-left, foot is centered
+  const FOOT_OFFSET_Y = DOG_H - 20;    // matches game's HIT_RADIUS calculation
+
+  // Set up an inner stage we can scale uniformly.
+  const stage = document.createElement('div');
+  stage.style.cssText = `
+    position: absolute;
+    top: 0; left: 0;
+    width: ${SCENE_W}px;
+    height: ${SCENE_H}px;
+    transform-origin: top left;
+  `;
+  // Move existing children (sun, dog) into the stage
+  const sun = scene.querySelector('.ps-sun');
+  scene.appendChild(stage);
+  stage.appendChild(sun);
+  stage.appendChild(dog);
+
+  function fit() {
+    const rect = scene.getBoundingClientRect();
+    const sx = rect.width / SCENE_W;
+    const sy = rect.height / SCENE_H;
+    const s = Math.min(sx, sy);
+    // Center the stage if there's slack on either axis
+    const offX = (rect.width - SCENE_W * s) / 2;
+    const offY = (rect.height - SCENE_H * s) / 2;
+    stage.style.transform = `translate(${offX}px, ${offY}px) scale(${s})`;
+  }
+  fit();
+  new ResizeObserver(fit).observe(scene);
+
+  // Position the sun in stage coordinates (override the CSS top/right)
+  sun.style.top = '20px';
+  sun.style.right = '24px';
+  sun.style.width = '50px';
+  sun.style.height = '50px';
+
+  // Scene state
+  let dogX = 30, dogY = SCENE_H - DOG_H - 20;
+  let poops = [];
+  let targetIdx = 0;
+  let prevX = dogX, prevY = dogY, nextX = dogX, nextY = dogY;
+  let segT = 0;
+  const SEG_DURATION = 1.4; // seconds per hop
+  let lastTime = 0;
+  let respawning = false;
+
+  function setDogPos(x, y, hop) {
+    dogX = x; dogY = y;
+    dog.style.left = x + 'px';
+    dog.style.top = (y - hop) + 'px';
+  }
+
+  function spawnPoops() {
+    // Remove any existing
+    stage.querySelectorAll('.ps-poop').forEach(p => p.remove());
+    poops = [];
+    // 4 poops spread across the scene, kept clear of the dog and the sun corner
+    const count = 4;
+    const margin = 30;
+    const minDist = 100;
+    const tries = 60;
+    while (poops.length < count) {
+      let placed = false;
+      for (let i = 0; i < tries && !placed; i++) {
+        const x = margin + Math.random() * (SCENE_W - margin * 2 - POOP_W);
+        const y = 70 + Math.random() * (SCENE_H - 70 - POOP_W - 30);
+        // Avoid the sun area (top-right ~80x80)
+        if (x > SCENE_W - 100 && y < 90) continue;
+        // Avoid current dog foot
+        const dogFootX = dogX + FOOT_OFFSET_X;
+        const dogFootY = dogY + FOOT_OFFSET_Y;
+        if (Math.hypot(x + POOP_W / 2 - dogFootX, y + POOP_W / 2 - dogFootY) < 90) continue;
+        let ok = true;
+        for (const p of poops) {
+          if (Math.hypot(x - p.x, y - p.y) < minDist) { ok = false; break; }
+        }
+        if (!ok) continue;
+        const el = document.createElement('div');
+        el.className = 'ps-poop';
+        el.textContent = '💩';
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        el.style.animationDelay = (Math.random() * 2) + 's';
+        stage.appendChild(el);
+        poops.push({ x, y, el, alive: true });
+        placed = true;
+      }
+      if (!placed) break;
+    }
+    targetIdx = 0;
+    startSegment();
+  }
+
+  function startSegment() {
+    prevX = dogX; prevY = dogY;
+    const p = poops[targetIdx];
+    if (!p) return;
+    // Aim so the dog's foot lands on the poop center
+    nextX = p.x + POOP_W / 2 - FOOT_OFFSET_X;
+    nextY = p.y + POOP_W / 2 - FOOT_OFFSET_Y;
+    segT = 0;
+  }
+
+  function squishCurrent() {
+    const p = poops[targetIdx];
+    if (!p || !p.alive) return;
+    p.alive = false;
+    p.el.classList.add('squish');
+    setTimeout(() => p.el.remove(), 500);
+    // Wiggle the dog
+    dog.classList.remove('wiggle');
+    void dog.offsetWidth; // restart animation
+    dog.classList.add('wiggle');
+    setTimeout(() => dog.classList.remove('wiggle'), 500);
+    // Sparkles centered on poop
+    const cx = p.x + POOP_W / 2;
+    const cy = p.y + POOP_W / 2;
+    const glyphs = ['✨', '⭐', '💫', '🌟'];
+    for (let i = 0; i < 4; i++) {
+      const s = document.createElement('div');
+      s.className = 'ps-sparkle';
+      s.textContent = glyphs[Math.floor(Math.random() * glyphs.length)];
+      s.style.left = (cx - 11) + 'px';
+      s.style.top = (cy - 11) + 'px';
+      s.style.setProperty('--dx', (Math.random() * 80 - 40) + 'px');
+      stage.appendChild(s);
+      setTimeout(() => s.remove(), 800);
+    }
+  }
+
+  function nextTarget() {
+    // Find next alive poop, or trigger respawn
+    for (let i = 1; i <= poops.length; i++) {
+      const idx = (targetIdx + i) % poops.length;
+      if (poops[idx].alive) {
+        targetIdx = idx;
+        startSegment();
+        return;
+      }
+    }
+    // None alive — respawn after a beat
+    if (!respawning) {
+      respawning = true;
+      setTimeout(() => {
+        respawning = false;
+        spawnPoops();
+      }, 700);
+    }
+  }
+
+  function frame(time) {
+    if (!lastTime) lastTime = time;
+    const dt = Math.min(0.05, (time - lastTime) / 1000);
+    lastTime = time;
+
+    if (!respawning && poops.length && poops[targetIdx] && poops[targetIdx].alive) {
+      segT += dt / SEG_DURATION;
+      if (segT > 1) segT = 1;
+      const x = prevX + (nextX - prevX) * segT;
+      const y = prevY + (nextY - prevY) * segT;
+      const hop = Math.sin(segT * Math.PI) * 30; // arc
+      setDogPos(x, y, hop);
+      if (segT >= 1) {
+        squishCurrent();
+        // brief settle, then move on
+        setTimeout(nextTarget, 220);
+      }
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  spawnPoops();
+  requestAnimationFrame(frame);
 })();
 </script>
 </body>
