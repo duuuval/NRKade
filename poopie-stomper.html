@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Poopie Stomper 🐾 — NRKade</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+  html, body { height: 100%; overflow: hidden; font-family: 'Comic Sans MS', 'Chalkboard SE', system-ui, sans-serif; }
+  /* --game-scale grows the dog, poops, and sparkles uniformly on bigger screens.
+     JS sets this dynamically based on min(vw, vh). Phone screens stay at 1. */
+  :root {
+    --game-scale: 1;
+  }
+  body {
+    background: linear-gradient(180deg, #87ceeb 0%, #b8e0a8 35%, #7cc26b 100%);
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+
+  #yard {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    height: 100svh;
+    height: 100dvh;
+    overflow: hidden;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  #yard::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 80%, rgba(80, 160, 70, 0.4) 0%, transparent 8%),
+      radial-gradient(circle at 70% 90%, rgba(80, 160, 70, 0.3) 0%, transparent 6%),
+      radial-gradient(circle at 40% 70%, rgba(100, 180, 90, 0.35) 0%, transparent 7%),
+      radial-gradient(circle at 85% 60%, rgba(80, 160, 70, 0.3) 0%, transparent 5%),
+      radial-gradient(circle at 10% 50%, rgba(100, 180, 90, 0.3) 0%, transparent 6%);
+    pointer-events: none;
+  }
+
+  #sun {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 30px);
+    right: 30px;
+    width: 70px;
+    height: 70px;
+    background: radial-gradient(circle, #fff5a0 0%, #ffd24a 60%, #ffb347 100%);
+    border-radius: 50%;
+    box-shadow: 0 0 40px rgba(255, 210, 74, 0.6);
+    animation: pulse 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  #hud {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 20px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.85);
+    border: 4px solid #5d3a1a;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 22px;
+    font-weight: bold;
+    color: #5d3a1a;
+    box-shadow: 0 4px 0 rgba(93, 58, 26, 0.3);
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  #backBtn {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 20px);
+    left: 20px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 4px solid #5d3a1a;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #5d3a1a;
+    text-decoration: none;
+    box-shadow: 0 4px 0 rgba(93, 58, 26, 0.3);
+    z-index: 10;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 1px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  #backBtn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 rgba(93, 58, 26, 0.3);
+  }
+
+  #mute {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 72px);
+    left: 20px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 4px solid #5d3a1a;
+    border-radius: 50%;
+    width: 42px;
+    height: 42px;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 0 rgba(93, 58, 26, 0.3);
+    padding: 0;
+  }
+  #mute:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(93, 58, 26, 0.3); }
+
+  #hint {
+    position: absolute;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 30px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.9);
+    border: 4px solid #5d3a1a;
+    border-radius: 20px;
+    padding: 12px 24px;
+    font-size: 22px;
+    font-weight: bold;
+    color: #5d3a1a;
+    z-index: 10;
+    pointer-events: none;
+    animation: hintBob 1.5s ease-in-out infinite;
+  }
+  #hint.hide { animation: hintFade 0.5s ease-out forwards; }
+  @keyframes hintBob {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-6px); }
+  }
+  @keyframes hintFade {
+    to { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  }
+
+  #dog {
+    position: absolute;
+    width: 120px;
+    height: 110px;
+    z-index: 5;
+    cursor: grab;
+    transform-origin: center bottom;
+    transform: scale(var(--game-scale));
+    touch-action: none;
+  }
+  #dog.grabbing { cursor: grabbing; }
+  #dog.wiggle .dog-inner { animation: wiggle 0.5s ease-in-out; }
+  @keyframes wiggle {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    25% { transform: scale(1.15) rotate(-8deg); }
+    50% { transform: scale(0.9) rotate(0deg); }
+    75% { transform: scale(1.1) rotate(8deg); }
+  }
+  #dog.grabbing .dog-inner {
+    filter: drop-shadow(0 8px 12px rgba(0,0,0,0.3));
+  }
+  .dog-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: filter 0.2s;
+  }
+
+  .dog-body {
+    position: absolute;
+    width: 90px;
+    height: 60px;
+    background: #1a1a1a;
+    border-radius: 50% 50% 45% 45%;
+    bottom: 10px;
+    left: 15px;
+    box-shadow: inset -8px -4px 0 rgba(0,0,0,0.3);
+  }
+  .dog-body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(60,60,60,0.8) 0%, transparent 15%),
+      radial-gradient(circle at 60% 50%, rgba(60,60,60,0.8) 0%, transparent 12%),
+      radial-gradient(circle at 80% 70%, rgba(60,60,60,0.8) 0%, transparent 14%),
+      radial-gradient(circle at 35% 75%, rgba(60,60,60,0.8) 0%, transparent 13%);
+  }
+  .dog-head {
+    position: absolute;
+    width: 70px;
+    height: 65px;
+    background: #1a1a1a;
+    border-radius: 50% 50% 45% 45%;
+    top: 5px;
+    left: 25px;
+    box-shadow: inset -4px -2px 0 rgba(0,0,0,0.3);
+  }
+  .dog-head::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image:
+      radial-gradient(circle at 25% 35%, rgba(60,60,60,0.9) 0%, transparent 18%),
+      radial-gradient(circle at 70% 45%, rgba(60,60,60,0.9) 0%, transparent 15%),
+      radial-gradient(circle at 50% 75%, rgba(60,60,60,0.9) 0%, transparent 16%);
+  }
+  .dog-ear-l, .dog-ear-r {
+    position: absolute;
+    width: 24px;
+    height: 38px;
+    background: #0d0d0d;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    top: 0px;
+  }
+  .dog-ear-l { left: 18px; transform: rotate(-15deg); }
+  .dog-ear-r { right: 18px; transform: rotate(15deg); }
+  .dog-eye-l, .dog-eye-r {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+    top: 28px;
+    z-index: 2;
+  }
+  .dog-eye-l { left: 42px; }
+  .dog-eye-r { right: 42px; }
+  .dog-eye-l::after, .dog-eye-r::after {
+    content: "";
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: black;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+  }
+  .dog-nose {
+    position: absolute;
+    width: 14px;
+    height: 10px;
+    background: #6b3410;
+    border-radius: 50%;
+    top: 42px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+  }
+  .dog-tail {
+    position: absolute;
+    width: 14px;
+    height: 28px;
+    background: #1a1a1a;
+    border-radius: 50%;
+    top: 28px;
+    left: 5px;
+    transform-origin: bottom center;
+    animation: wag 0.4s ease-in-out infinite;
+  }
+  @keyframes wag {
+    0%, 100% { transform: rotate(-25deg); }
+    50% { transform: rotate(25deg); }
+  }
+  .dog-leg-1, .dog-leg-2 {
+    position: absolute;
+    width: 14px;
+    height: 18px;
+    background: #1a1a1a;
+    border-radius: 30% 30% 40% 40%;
+    bottom: -5px;
+  }
+  .dog-leg-1 { left: 28px; }
+  .dog-leg-2 { right: 28px; }
+
+  .poop {
+    position: absolute;
+    width: calc(60px * var(--game-scale));
+    height: calc(60px * var(--game-scale));
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(50px * var(--game-scale));
+    animation: poopBob 2s ease-in-out infinite;
+    filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.3));
+    pointer-events: none;
+  }
+  .poop.squish {
+    animation: squish 0.5s ease-out forwards;
+  }
+  @keyframes poopBob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  @keyframes squish {
+    0% { transform: scale(1); opacity: 1; }
+    40% { transform: scale(1.6, 0.3); opacity: 1; }
+    100% { transform: scale(2.2, 0.1); opacity: 0; }
+  }
+
+  .sparkle {
+    position: absolute;
+    pointer-events: none;
+    font-size: calc(30px * var(--game-scale));
+    animation: sparkleUp 0.8s ease-out forwards;
+    z-index: 4;
+  }
+  @keyframes sparkleUp {
+    0% { transform: translate(0, 0) scale(0.5) rotate(0deg); opacity: 1; }
+    100% { transform: translate(var(--dx), -80px) scale(1.4) rotate(360deg); opacity: 0; }
+  }
+
+  #win {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, rgba(255, 230, 150, 0.95) 0%, rgba(255, 180, 100, 0.95) 100%);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    text-align: center;
+    padding: 20px;
+  }
+  #win.show { display: flex; animation: fadeIn 0.4s ease-out; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  #win h1 {
+    font-size: 56px;
+    color: #5d3a1a;
+    text-shadow: 4px 4px 0 #fff, 6px 6px 0 rgba(0,0,0,0.2);
+    margin-bottom: 20px;
+    line-height: 1.1;
+  }
+  #win p {
+    font-size: 28px;
+    color: #5d3a1a;
+    margin-bottom: 30px;
+  }
+  #playAgain {
+    background: #ff6b9d;
+    color: white;
+    border: 5px solid #5d3a1a;
+    border-radius: 30px;
+    padding: 20px 40px;
+    font-size: 32px;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #5d3a1a;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  #playAgain:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #5d3a1a;
+  }
+
+  .crown {
+    font-size: 80px;
+    animation: bounce 1s ease-in-out infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-15px) rotate(5deg); }
+  }
+
+  .heart {
+    position: absolute;
+    font-size: 40px;
+    pointer-events: none;
+    animation: floatHeart 2s ease-out forwards;
+  }
+  @keyframes floatHeart {
+    0% { transform: translateY(0) scale(0); opacity: 1; }
+    20% { transform: translateY(-20px) scale(1.2); opacity: 1; }
+    100% { transform: translateY(-200px) scale(0.5); opacity: 0; }
+  }
+
+  /* ── Tablet sizing — upsize HUD on iPad-class screens.
+     Uses both min-width and min-height to avoid triggering on narrow phones in landscape. */
+  @media (min-width: 700px) and (min-height: 700px) {
+    #hud {
+      padding: 12px 22px;
+      font-size: 30px;
+      border-width: 5px;
+      border-radius: 24px;
+    }
+    #backBtn {
+      padding: 10px 20px;
+      font-size: 18px;
+      border-width: 5px;
+      border-radius: 24px;
+    }
+    #mute {
+      top: calc(env(safe-area-inset-top, 0px) + 90px);
+      width: 56px;
+      height: 56px;
+      font-size: 26px;
+      border-width: 5px;
+    }
+    #sun {
+      width: 100px;
+      height: 100px;
+      top: calc(env(safe-area-inset-top, 0px) + 30px);
+      right: 40px;
+    }
+    #hint {
+      font-size: 28px;
+      padding: 16px 32px;
+      border-width: 5px;
+      border-radius: 24px;
+    }
+    #win h1 {
+      font-size: 80px;
+    }
+    #win p {
+      font-size: 36px;
+    }
+    .crown {
+      font-size: 110px;
+    }
+    #playAgain {
+      padding: 24px 50px;
+      font-size: 38px;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="yard">
+  <div id="sun"></div>
+  <div id="hud">🐾 <span id="score">0</span> / <span id="total">6</span></div>
+  <a id="backBtn" href="index.html">← ARCADE</a>
+  <button id="mute" aria-label="Mute">🔊</button>
+
+  <div id="dog">
+    <div class="dog-inner">
+      <div class="dog-tail"></div>
+      <div class="dog-body"></div>
+      <div class="dog-leg-1"></div>
+      <div class="dog-leg-2"></div>
+      <div class="dog-head">
+        <div class="dog-ear-l"></div>
+        <div class="dog-ear-r"></div>
+        <div class="dog-eye-l"></div>
+        <div class="dog-eye-r"></div>
+        <div class="dog-nose"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="hint">👆 Drag the doggy!</div>
+
+  <div id="win">
+    <div class="crown">👑</div>
+    <h1>YOU GOT<br>THEM ALL!</h1>
+    <p>🎉 Good doggo! 🎉</p>
+    <button id="playAgain">Play Again</button>
+  </div>
+</div>
+
+<script>
+  // Back button is always visible (CSS default) — kids' arcade UX.
+
+  const yard = document.getElementById('yard');
+  const dog = document.getElementById('dog');
+  const scoreEl = document.getElementById('score');
+  const totalEl = document.getElementById('total');
+  const winScreen = document.getElementById('win');
+  const playAgainBtn = document.getElementById('playAgain');
+  const muteBtn = document.getElementById('mute');
+  const hint = document.getElementById('hint');
+
+  const POOP_COUNT = 6;
+  // Game-element dimensions — the DOG_W/H and HIT_RADIUS scale with viewport
+  // so the dog stays a comfortable size on phones and tablets alike.
+  // updateGameScale() recomputes these and the CSS --game-scale on resize.
+  const DOG_W_BASE = 120, DOG_H_BASE = 110, HIT_RADIUS_BASE = 50;
+  let gameScale = 1;
+  let DOG_W = DOG_W_BASE, DOG_H = DOG_H_BASE;
+  let FOOT_OFFSET_X = DOG_W / 2;
+  let FOOT_OFFSET_Y = DOG_H - 20;
+  let HIT_RADIUS = HIT_RADIUS_BASE;
+
+  function updateGameScale() {
+    // Ramp from 1.0 at ~phone widths up to ~2.0 on iPad Pro / desktop.
+    // 480 chosen because most phones in portrait have min(vw,vh) ≈ 360–430.
+    const minDim = Math.min(window.innerWidth, window.innerHeight);
+    gameScale = Math.max(1, Math.min(2.0, minDim / 480));
+    document.documentElement.style.setProperty('--game-scale', gameScale);
+    DOG_W = DOG_W_BASE * gameScale;
+    DOG_H = DOG_H_BASE * gameScale;
+    FOOT_OFFSET_X = DOG_W / 2;
+    FOOT_OFFSET_Y = DOG_H - 20 * gameScale;
+    HIT_RADIUS = HIT_RADIUS_BASE * gameScale;
+  }
+  updateGameScale();
+
+  let score = 0;
+  let muted = false;
+  let dragging = false;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+  let dogX = window.innerWidth / 2 - DOG_W / 2;
+  let dogY = window.innerHeight / 2 - DOG_H / 2;
+  let hintShown = false;
+
+  let audioCtx = null;
+  function initAudio() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function playSquish() {
+    if (muted || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    const noise = audioCtx.createBufferSource();
+    const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.3, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 2);
+    }
+    noise.buffer = buffer;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(800, now);
+    filter.frequency.exponentialRampToValueAtTime(200, now + 0.3);
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+    noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+    noise.start(now); noise.stop(now + 0.3);
+
+    const osc = audioCtx.createOscillator();
+    const oscGain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.25);
+    oscGain.gain.setValueAtTime(0.2, now);
+    oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+    osc.connect(oscGain); oscGain.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + 0.25);
+  }
+
+  function playWin() {
+    if (muted || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, now + i * 0.15);
+      gain.gain.linearRampToValueAtTime(0.25, now + i * 0.15 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.4);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(now + i * 0.15); osc.stop(now + i * 0.15 + 0.4);
+    });
+  }
+
+  function placeDog(x, y) {
+    x = Math.max(0, Math.min(window.innerWidth - DOG_W, x));
+    y = Math.max(70 * gameScale, Math.min(window.innerHeight - DOG_H, y));
+    dogX = x; dogY = y;
+    dog.style.left = x + 'px';
+    dog.style.top = y + 'px';
+  }
+
+  function spawnPoops() {
+    yard.querySelectorAll('.poop').forEach(p => p.remove());
+    const POOP_SIZE = 60 * gameScale;
+    const half = POOP_SIZE / 2;
+    const margin = 60 * gameScale;
+    const minDist = 90 * gameScale;
+    // Clearance around HUD/sun at top and hint banner at bottom — both scale with HUD size.
+    const topClearance = 120 * gameScale;
+    const bottomClearance = 100 * gameScale;
+    const positions = [];
+    let attempts = 0;
+    while (positions.length < POOP_COUNT && attempts < 300) {
+      attempts++;
+      const x = margin + Math.random() * (window.innerWidth - margin * 2 - POOP_SIZE);
+      const y = topClearance + Math.random() * (window.innerHeight - topClearance - bottomClearance - POOP_SIZE);
+      const dogFootX = dogX + FOOT_OFFSET_X, dogFootY = dogY + FOOT_OFFSET_Y;
+      if (Math.hypot(x + half - dogFootX, y + half - dogFootY) < 100 * gameScale) continue;
+      let ok = true;
+      for (const p of positions) {
+        if (Math.hypot(x - p.x, y - p.y) < minDist) { ok = false; break; }
+      }
+      if (ok) positions.push({ x, y });
+    }
+    positions.forEach(pos => {
+      const poop = document.createElement('div');
+      poop.className = 'poop';
+      poop.textContent = '💩';
+      poop.style.left = pos.x + 'px';
+      poop.style.top = pos.y + 'px';
+      poop.style.animationDelay = (Math.random() * 2) + 's';
+      poop.dataset.cx = pos.x + half;
+      poop.dataset.cy = pos.y + half;
+      yard.appendChild(poop);
+    });
+  }
+
+  function checkSquish() {
+    const dogFootX = dogX + FOOT_OFFSET_X;
+    const dogFootY = dogY + FOOT_OFFSET_Y;
+    const poops = yard.querySelectorAll('.poop:not(.squish)');
+    poops.forEach(poop => {
+      const cx = parseFloat(poop.dataset.cx);
+      const cy = parseFloat(poop.dataset.cy);
+      if (Math.hypot(cx - dogFootX, cy - dogFootY) < HIT_RADIUS) {
+        squishPoop(poop, cx, cy);
+      }
+    });
+  }
+
+  function squishPoop(poop, cx, cy) {
+    poop.classList.add('squish');
+    dog.classList.remove('wiggle');
+    void dog.offsetWidth;
+    dog.classList.add('wiggle');
+    playSquish();
+    spawnSparkles(cx, cy);
+    score++;
+    scoreEl.textContent = score;
+    setTimeout(() => poop.remove(), 500);
+    setTimeout(() => dog.classList.remove('wiggle'), 500);
+    if (score >= POOP_COUNT) {
+      setTimeout(showWin, 500);
+    }
+  }
+
+  function spawnSparkles(x, y) {
+    const emojis = ['✨', '⭐', '💫', '🌟'];
+    for (let i = 0; i < 5; i++) {
+      const s = document.createElement('div');
+      s.className = 'sparkle';
+      s.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      s.style.left = (x - 15) + 'px';
+      s.style.top = (y - 15) + 'px';
+      s.style.setProperty('--dx', (Math.random() * 120 - 60) + 'px');
+      yard.appendChild(s);
+      setTimeout(() => s.remove(), 800);
+    }
+  }
+
+  function showWin() {
+    winScreen.classList.add('show');
+    playWin();
+    for (let i = 0; i < 8; i++) {
+      setTimeout(() => {
+        const h = document.createElement('div');
+        h.className = 'heart';
+        h.textContent = ['❤️','💕','💖','💗'][Math.floor(Math.random()*4)];
+        h.style.left = (Math.random() * window.innerWidth) + 'px';
+        h.style.top = (window.innerHeight - 100) + 'px';
+        yard.appendChild(h);
+        setTimeout(() => h.remove(), 2000);
+      }, i * 150);
+    }
+  }
+
+  function reset() {
+    score = 0;
+    scoreEl.textContent = 0;
+    winScreen.classList.remove('show');
+    placeDog(window.innerWidth / 2 - DOG_W / 2, window.innerHeight / 2 - DOG_H / 2);
+    spawnPoops();
+    hint.classList.remove('hide');
+    hintShown = false;
+  }
+
+  function getEventPoint(e) {
+    if (e.touches && e.touches.length) {
+      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  function startDrag(e) {
+    initAudio();
+    e.preventDefault();
+    const p = getEventPoint(e);
+    dragOffsetX = p.x - dogX;
+    dragOffsetY = p.y - dogY;
+    dragging = true;
+    dog.classList.add('grabbing');
+    if (!hintShown) {
+      hintShown = true;
+      hint.classList.add('hide');
+    }
+  }
+
+  function moveDrag(e) {
+    if (!dragging) return;
+    e.preventDefault();
+    const p = getEventPoint(e);
+    placeDog(p.x - dragOffsetX, p.y - dragOffsetY);
+    checkSquish();
+  }
+
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    dog.classList.remove('grabbing');
+  }
+
+  dog.addEventListener('touchstart', startDrag, { passive: false });
+  dog.addEventListener('mousedown', startDrag);
+  document.addEventListener('touchmove', moveDrag, { passive: false });
+  document.addEventListener('mousemove', moveDrag);
+  document.addEventListener('touchend', endDrag);
+  document.addEventListener('touchcancel', endDrag);
+  document.addEventListener('mouseup', endDrag);
+
+  playAgainBtn.addEventListener('click', () => {
+    initAudio();
+    reset();
+  });
+
+  muteBtn.addEventListener('click', () => {
+    muted = !muted;
+    muteBtn.textContent = muted ? '🔇' : '🔊';
+    initAudio();
+  });
+
+  totalEl.textContent = POOP_COUNT;
+  placeDog(dogX, dogY);
+  spawnPoops();
+
+  document.addEventListener('touchstart', initAudio, { once: true });
+  document.addEventListener('click', initAudio, { once: true });
+
+  window.addEventListener('resize', () => {
+    updateGameScale();
+    placeDog(dogX, dogY);
+    // Re-position existing poops would require complex remap logic; instead,
+    // if a game is in progress, just leave poops where they are. The CSS scales
+    // the visuals, but stored coordinates stay stable. On orientation change,
+    // poops may end up off-screen — accept that as a rare edge case for an
+    // arcade game that's never paused mid-rotation in practice.
+  });
+</script>
+</body>
+</html>
