@@ -337,14 +337,57 @@
     background: rgba(255, 255, 255, 0.14);
   }
 
-  .fs-btn {
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.85);
+  /* Mobile-portrait hint — top row of papers can be hard to reach
+     because mobile browsers steal viewport space. Recommends landscape
+     or desktop mode as workarounds. Dismissible, then never returns. */
+  #mobileHint {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    top: calc(var(--safe-top) + 88px + 12px); /* below top toolbar */
+    max-width: calc(100vw - 32px);
+    width: max-content;
+    background: rgba(20, 20, 32, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #fff;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-family: 'Trebuchet MS', sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    z-index: 50;
+    display: none;
+    animation: hintSlide 0.35s ease-out;
+    cursor: pointer;
   }
-  .fs-btn svg {
-    width: 28px;
-    height: 28px;
-    pointer-events: none;
+  #mobileHint.visible { display: block; }
+  #mobileHint .hint-title {
+    font-weight: 700;
+    color: #ffd60a;
+    margin-bottom: 4px;
+  }
+  #mobileHint .hint-close {
+    position: absolute;
+    top: 4px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 18px;
+    line-height: 1;
+  }
+  @keyframes hintSlide {
+    from { opacity: 0; transform: translate(-50%, -10px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+  }
+  @media (max-height: 500px) {
+    #mobileHint { top: calc(var(--safe-top) + 76px + 10px); }
   }
 
   .spacer {
@@ -383,7 +426,6 @@
     .swatch { width: 56px; height: 56px; }
     .paper { width: 48px; height: 48px; }
     .action-btn { width: 56px; height: 56px; border-radius: 14px; }
-    .fs-btn svg { width: 24px; height: 24px; }
     .arcade-btn { height: 32px; padding: 0 8px; font-size: 11px; }
   }
 </style>
@@ -394,14 +436,6 @@
   <a class="arcade-btn" id="arcadeBtn" href="index.html">← ARCADE</a>
   <div class="paper-row" id="papers"></div>
   <div class="action-group">
-    <button class="action-btn fs-btn" id="fsBtn" aria-label="Toggle fullscreen">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 9V5a1 1 0 0 1 1-1h4"/>
-        <path d="M20 9V5a1 1 0 0 0-1-1h-4"/>
-        <path d="M4 15v4a1 1 0 0 0 1 1h4"/>
-        <path d="M20 15v4a1 1 0 0 1-1 1h-4"/>
-      </svg>
-    </button>
     <button class="action-btn eraser-btn" id="eraserBtn" aria-label="Eraser"></button>
     <button class="action-btn clear-btn" id="clearBtn" aria-label="Hold to clear">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -415,6 +449,12 @@
 
 <div id="stage">
   <canvas id="canvas"></canvas>
+</div>
+
+<div id="mobileHint" role="status" aria-live="polite">
+  <div class="hint-close" id="mobileHintClose" aria-label="Dismiss">×</div>
+  <div class="hint-title">Tip for phones</div>
+  Bigger drawing area + all the colors fit when you turn on <strong>"Desktop site"</strong> in your browser menu.
 </div>
 
 <div class="toolbar bottom" id="palette"></div>
@@ -431,23 +471,41 @@
     }
   })();
 
-  // ---------- Fullscreen toggle ----------
+  // ---------- Mobile-portrait hint ----------
+  // The top toolbar's paper picker can be hard to tap on phones because the
+  // browser address bar eats viewport space and the safe-area inset pushes
+  // the row down further. We show a one-time dismissible nudge to rotate or
+  // request desktop site. Tablets and desktops never see this.
   (() => {
-    const btn = document.getElementById('fsBtn');
-    if (!btn) return;
-    btn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const el = document.documentElement;
-      const isFs = document.fullscreenElement || document.webkitFullscreenElement;
-      if (!isFs) {
-        const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
-        if (req) req.call(el);
-      } else {
-        const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen;
-        if (exit) exit.call(document);
-      }
-    });
+    const HINT_KEY = 'doodlepad_hint_dismissed';
+    const hint = document.getElementById('mobileHint');
+    const closeBtn = document.getElementById('mobileHintClose');
+    if (!hint) return;
+
+    const isPhonePortrait = () =>
+      window.innerWidth < 600 && window.innerHeight > window.innerWidth;
+
+    let dismissed = false;
+    try { dismissed = localStorage.getItem(HINT_KEY) === '1'; } catch {}
+
+    if (!dismissed && isPhonePortrait()) {
+      // Slight delay so it doesn't fight with initial paint
+      setTimeout(() => hint.classList.add('visible'), 600);
+    }
+
+    const dismiss = () => {
+      hint.classList.remove('visible');
+      try { localStorage.setItem(HINT_KEY, '1'); } catch {}
+    };
+
+    // Tap the banner anywhere or the X to dismiss
+    hint.addEventListener('click', dismiss);
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dismiss();
+      });
+    }
   })();
 
   // ---------- Configuration ----------
