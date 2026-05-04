@@ -206,7 +206,15 @@
     display: flex;
     gap: 12px;
     align-items: center;
+    flex: 1 1 0;          /* take remaining space inside the toolbar */
+    min-width: 0;          /* allow shrinking below content size */
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px 2px;      /* breathing room so the active scale(1.1) doesn't clip */
   }
+  .paper-row::-webkit-scrollbar { display: none; }
 
   .paper {
     flex: 0 0 auto;
@@ -374,7 +382,6 @@
 <div class="toolbar top">
   <a class="arcade-btn" id="arcadeBtn" href="index.html">← ARCADE</a>
   <div class="paper-row" id="papers"></div>
-  <div class="spacer"></div>
   <div class="action-group">
     <button class="action-btn eraser-btn" id="eraserBtn" aria-label="Eraser"></button>
     <button class="action-btn clear-btn" id="clearBtn" aria-label="Hold to clear">
