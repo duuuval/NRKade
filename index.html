@@ -169,6 +169,14 @@ main {
 .thumb-poopie canvas {
   width:100%; height:100%;
 }
+/* Doodle Pad — black paper for the neon brush demo */
+.thumb-doodle-pad {
+  background: #0a0a14;
+}
+.thumb-doodle-pad canvas {
+  width:100%; height:100%;
+  display:block;
+}
 /* coming-soon card style */
 .card-coming {
   opacity: 0.45;
@@ -253,6 +261,11 @@ main {
 .card-poopie-stomper {
   --card-color: #8b5a2b;
   --card-glow: rgba(139,90,43,0.3);
+}
+/* ── DOODLE PAD SPECIFIC ── */
+.card-doodle-pad {
+  --card-color: #ff2d92;
+  --card-glow: rgba(255,45,146,0.35);
 }
 /* ── FOOTER ── */
 footer {
@@ -521,15 +534,17 @@ footer strong {
 
 <div class="marquee-wrap">
   <div class="marquee-inner">
-    <span>NEW!</span> POOPIE STOMPER IS LIVE &nbsp;·&nbsp;
-    <span>🐾</span> SQUISH 'EM ALL &nbsp;·&nbsp;
+    <span>NEW!</span> DOODLE PAD IS LIVE &nbsp;·&nbsp;
+    <span>🎨</span> NEON BRUSH GLOW &nbsp;·&nbsp;
+    <span>🐾</span> POOPIE STOMPER &nbsp;·&nbsp;
     <span>🏜️</span> CANYON RACER &nbsp;·&nbsp;
     <span>🛻</span> MONSTER TRUCK ARENA &nbsp;·&nbsp;
     <span>🚀</span> SPACE BATTLE MODE &nbsp;·&nbsp;
     <span>💀</span> 3 DIFFICULTY LEVELS &nbsp;·&nbsp;
     <span>🔥</span> BOOST YOUR WAY TO VICTORY &nbsp;·&nbsp;
-    <span>NEW!</span> POOPIE STOMPER IS LIVE &nbsp;·&nbsp;
-    <span>🐾</span> SQUISH 'EM ALL &nbsp;·&nbsp;
+    <span>NEW!</span> DOODLE PAD IS LIVE &nbsp;·&nbsp;
+    <span>🎨</span> NEON BRUSH GLOW &nbsp;·&nbsp;
+    <span>🐾</span> POOPIE STOMPER &nbsp;·&nbsp;
     <span>🏜️</span> CANYON RACER &nbsp;·&nbsp;
     <span>🛻</span> MONSTER TRUCK ARENA &nbsp;·&nbsp;
     <span>🚀</span> SPACE BATTLE MODE &nbsp;·&nbsp;
@@ -610,6 +625,23 @@ footer strong {
       </div>
     </a>
 
+    <!-- DOODLE PAD -->
+    <a href="doodle-pad.html" class="game-card card-doodle-pad">
+      <div class="card-thumb thumb-doodle-pad">
+        <canvas id="doodlePadPreview"></canvas>
+      </div>
+      <div class="card-play">▶ PLAY</div>
+      <div class="card-info">
+        <div class="card-title" style="color:#ff2d92;">🎨 DOODLE PAD</div>
+        <div class="card-desc">Free drawing doodle pad with neon, rainbow, firework &amp; starburst brushes. Go wild on the background of your choice, then start fresh whenever you're ready.</div>
+        <div class="card-tags">
+          <span class="tag" style="color:#ff2d92;border-color:#ff2d9244;background:rgba(255,45,146,0.08);">Creative</span>
+          <span class="tag" style="color:#ffdd00;border-color:#ffdd0044;background:rgba(255,221,0,0.08);">Kids</span>
+          <span class="tag" style="color:#00e5ff;border-color:#00e5ff44;background:rgba(0,229,255,0.08);">Mobile</span>
+        </div>
+      </div>
+    </a>
+
     <!-- COMING SOON SLOT -->
     <div class="game-card card-coming">
       <div class="card-thumb thumb-coming">
@@ -617,7 +649,7 @@ footer strong {
         <div class="coming-label">Coming Soon</div>
       </div>
       <div class="card-info">
-        <div class="card-title" style="color:var(--subtext);">??? GAME 4</div>
+        <div class="card-title" style="color:var(--subtext);">??? GAME 5</div>
         <div class="card-desc">Something epic is being designed...</div>
         <div class="card-tags">
           <span class="tag" style="color:var(--subtext);border-color:rgba(136,136,170,0.2);background:rgba(136,136,170,0.05);">Mystery</span>
@@ -1330,6 +1362,282 @@ footer strong {
   }
 
   spawnPoops();
+  requestAnimationFrame(frame);
+})();
+
+// ── ANIMATED PREVIEW: Doodle Pad — neon flower drawn on loop ───────────────
+// Replicates the game's neon brush exactly: screen-blended gradient stroke
+// with shadow blur for the glow halo, plus a white inner core. Hue cycles
+// continuously along the path. Drawing plays on a ~7.5s loop:
+//   draw flower (5.5s) → hold (1.2s) → fade (0.8s) → restart
+(function() {
+  const canvas = document.getElementById('doodlePadPreview');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let dpr = 1;
+  let W = 0, H = 0;
+
+  function resize() {
+    dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width  = Math.floor(rect.width  * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    W = rect.width;
+    H = rect.height;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  }
+  resize();
+  new ResizeObserver(resize).observe(canvas);
+
+  // ── Hue → CSS rgb (game's hueToRgb HSL @ s=1) ──
+  function hueToCss(h, l) {
+    if (l == null) l = 0.5;
+    const s = 1;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const hp = ((h % 360) + 360) % 360 / 60;
+    const x = c * (1 - Math.abs(hp % 2 - 1));
+    let r1, g1, b1;
+    if (hp < 1)      { r1 = c; g1 = x; b1 = 0; }
+    else if (hp < 2) { r1 = x; g1 = c; b1 = 0; }
+    else if (hp < 3) { r1 = 0; g1 = c; b1 = x; }
+    else if (hp < 4) { r1 = 0; g1 = x; b1 = c; }
+    else if (hp < 5) { r1 = x; g1 = 0; b1 = c; }
+    else             { r1 = c; g1 = 0; b1 = x; }
+    const m = l - c / 2;
+    return `rgb(${Math.round((r1 + m) * 255)},${Math.round((g1 + m) * 255)},${Math.round((b1 + m) * 255)})`;
+  }
+
+  // ── Build the flower path as a sequence of 2D points in [-1, 1] space ──
+  // We'll later map to canvas coords. The video shows the flower as a series
+  // of separate strokes — head (5 connected petal loops), stem, leaf 1,
+  // leaf 2. We model those as sub-paths separated by `null` (pen-up).
+  function buildFlowerPath() {
+    const subpaths = [];
+    const cx = 0, cy = -0.32;          // flower head centre (upper area)
+    const petalR = 0.42;                // petal reach from centre
+    const petalW = 0.28;                // petal half-width
+    const N_PETALS = 5;
+    const samplesPerPetal = 36;
+
+    // ── Subpath 1: flower head (5 petals as one continuous loop) ──
+    const head = [];
+    for (let p = 0; p < N_PETALS; p++) {
+      const baseAng = -Math.PI / 2 + (p / N_PETALS) * Math.PI * 2;
+      for (let i = 0; i <= samplesPerPetal; i++) {
+        const t = i / samplesPerPetal;
+        // Parametric petal: distance grows then shrinks; angle wobbles either side
+        const dist = Math.sin(t * Math.PI) * petalR;
+        const angOffset = Math.sin(t * Math.PI * 2) * (petalW / petalR) * 0.9;
+        const ang = baseAng + angOffset;
+        head.push([cx + Math.cos(ang) * dist, cy + Math.sin(ang) * dist]);
+      }
+    }
+    subpaths.push(head);
+
+    // ── Subpath 2: stem ──
+    const stem = [];
+    const stemTop = [cx, cy + 0.05];
+    const stemBot = [cx + 0.02, 0.62];
+    const stemSamples = 28;
+    for (let i = 0; i <= stemSamples; i++) {
+      const t = i / stemSamples;
+      stem.push([
+        stemTop[0] + (stemBot[0] - stemTop[0]) * t,
+        stemTop[1] + (stemBot[1] - stemTop[1]) * t,
+      ]);
+    }
+    subpaths.push(stem);
+
+    // ── Subpaths 3 & 4: two crossing leaves at the lower stem ──
+    // Each leaf is a closed loop (ellipse) — drawn one at a time, with the
+    // brush "lifting" between them so we don't get a connecting line.
+    const leafCy = 0.36;
+    const leafSamples = 30;
+    const rightLeaf = [];
+    for (let i = 0; i <= leafSamples; i++) {
+      const t = i / leafSamples;
+      const ang = t * Math.PI * 2;
+      rightLeaf.push([
+        0.32 + Math.cos(ang + Math.PI) * 0.28,
+        leafCy + Math.sin(ang + Math.PI) * 0.10,
+      ]);
+    }
+    subpaths.push(rightLeaf);
+
+    const leftLeaf = [];
+    for (let i = 0; i <= leafSamples; i++) {
+      const t = i / leafSamples;
+      const ang = t * Math.PI * 2;
+      leftLeaf.push([
+        -0.32 + Math.cos(ang) * 0.28,
+        leafCy + Math.sin(ang) * 0.10,
+      ]);
+    }
+    subpaths.push(leftLeaf);
+
+    return subpaths;
+  }
+
+  const SUBPATHS_NORM = buildFlowerPath();
+  const TOTAL_POINTS = SUBPATHS_NORM.reduce((s, sp) => s + sp.length, 0);
+
+  // Map normalised [-1..1]ish coords to canvas pixel coords, fitting nicely.
+  // Returns an array of sub-paths (each an array of [x,y] pixel coords).
+  function mapSubpaths() {
+    const pad = 18;
+    const availW = W - pad * 2;
+    const availH = H - pad * 2;
+    // Path X is roughly -0.6..0.6, Y is roughly -0.74..0.62 → fit by Y mostly
+    const scaleX = availW / 1.6;
+    const scaleY = availH / 1.55;
+    const scale = Math.min(scaleX, scaleY);
+    const cx = W / 2, cy = H / 2 + scale * 0.04; // slight downward bias
+    return SUBPATHS_NORM.map(sub =>
+      sub.map(([x, y]) => [cx + x * scale, cy + y * scale])
+    );
+  }
+
+  // ── Game's drawNeonSegment, faithfully reproduced ──
+  // Note: the game uses globalCompositeOperation='screen' which adds to the
+  // existing canvas → on a black background that gives the proper neon glow.
+  // Because we paint our own black behind every frame, this works the same.
+  function neonSegment(x1, y1, x2, y2, h1, h2, scaleK) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+
+    // Outer halo — wide, very blurry
+    ctx.shadowColor = hueToCss(h2, 0.55);
+    ctx.shadowBlur = 28 * scaleK;
+    gradientStroke(x1, y1, x2, y2, h1, h2, 12 * scaleK, 0.5);
+
+    // Mid stroke — more saturated, less blur
+    ctx.shadowBlur = 14 * scaleK;
+    gradientStroke(x1, y1, x2, y2, h1, h2, 6 * scaleK, 0.55);
+
+    // White inner core — gives the bright "filament" look
+    ctx.shadowColor = hueToCss(h2, 0.55);
+    ctx.shadowBlur = 8 * scaleK;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5 * scaleK;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function gradientStroke(x1, y1, x2, y2, h1, h2, lineWidth, lightness) {
+    const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+    const steps = 6;
+    let dh = ((h2 - h1) % 360 + 540) % 360 - 180;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      grad.addColorStop(t, hueToCss(h1 + dh * t, lightness));
+    }
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+
+  // ── Animation loop ──
+  // We rebuild the entire visible drawing each frame from the mapped path,
+  // re-painting black underneath. That keeps it crisp and lets the fade-out
+  // phase work cleanly (fade is just lower alpha on the black overlay).
+  const DRAW_DURATION = 5500;
+  const HOLD_DURATION = 1200;
+  const FADE_DURATION = 800;
+  const TOTAL = DRAW_DURATION + HOLD_DURATION + FADE_DURATION;
+
+  // Hue cycles 1.5 full rotations across the entire drawing — matches the
+  // rainbow gradient seen in the video.
+  const HUE_PER_PATH = 540;
+
+  let startTime = performance.now();
+
+  function frame(now) {
+    const elapsed = (now - startTime) % TOTAL;
+    const subs = mapSubpaths();
+
+    // Black background (fully repainted each frame)
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#0a0a14';
+    ctx.fillRect(0, 0, W, H);
+
+    // How many points should we have drawn by now?
+    let pointsToDraw;
+    let fadeAlpha = 0;
+
+    if (elapsed < DRAW_DURATION) {
+      const p = elapsed / DRAW_DURATION;
+      pointsToDraw = Math.floor(p * TOTAL_POINTS);
+    } else if (elapsed < DRAW_DURATION + HOLD_DURATION) {
+      pointsToDraw = TOTAL_POINTS;
+    } else {
+      pointsToDraw = TOTAL_POINTS;
+      fadeAlpha = (elapsed - DRAW_DURATION - HOLD_DURATION) / FADE_DURATION;
+    }
+
+    if (pointsToDraw > 0) {
+      // Brush thickness scales with card size so it's neither too thin on
+      // big screens nor blown out on small ones.
+      const scaleK = Math.min(W, H) / 360;
+      const baseHueOffset = (now * 0.04) % 360; // gentle global rotation
+
+      // Walk subpaths, drawing segments only within each subpath (no pen-up
+      // segments are drawn — that's the key fix vs an unbroken polyline).
+      let drawn = 0;
+      let brushTip = null;
+
+      outer:
+      for (const sub of subs) {
+        for (let i = 0; i < sub.length - 1; i++) {
+          if (drawn >= pointsToDraw) break outer;
+          const [x1, y1] = sub[i];
+          const [x2, y2] = sub[i + 1];
+          // Hue is a function of absolute path position so the rainbow runs
+          // continuously across the whole drawing, ignoring pen-up gaps.
+          const h1 = baseHueOffset + (drawn       / TOTAL_POINTS) * HUE_PER_PATH;
+          const h2 = baseHueOffset + ((drawn + 1) / TOTAL_POINTS) * HUE_PER_PATH;
+          neonSegment(x1, y1, x2, y2, h1, h2, scaleK);
+          brushTip = [x2, y2];
+          drawn++;
+        }
+        // Account for the subpath endpoint — counts as one "point drawn"
+        // even though no segment was painted from it. This keeps the time
+        // budget accurate so the whole drawing fits in DRAW_DURATION.
+        drawn++;
+        if (drawn >= pointsToDraw) break;
+      }
+
+      // Bright "brush tip" sparkle while drawing
+      if (elapsed < DRAW_DURATION && brushTip && drawn < TOTAL_POINTS) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 16 * scaleK;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(brushTip[0], brushTip[1], 3 * scaleK, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // Fade overlay
+    if (fadeAlpha > 0) {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = `rgba(10, 10, 20, ${fadeAlpha})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    requestAnimationFrame(frame);
+  }
   requestAnimationFrame(frame);
 })();
 </script>

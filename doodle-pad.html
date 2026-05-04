@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#1a1a2e" />
+<title>DOODLE PAD - NRKade</title>
+<style>
+  :root {
+    --ui-bg: rgba(20, 20, 35, 0.92);
+    --ui-border: rgba(255, 255, 255, 0.08);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+    background: #1a1a2e;
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', system-ui, sans-serif;
+  }
+
+  #stage {
+    position: fixed;
+    top: calc(var(--safe-top) + 88px);
+    bottom: calc(var(--safe-bottom) + 88px);
+    left: var(--safe-left);
+    right: var(--safe-right);
+    background: #ffffff;
+    transition: background-color 0.3s ease;
+  }
+
+  canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .toolbar {
+    position: fixed;
+    left: var(--safe-left);
+    right: var(--safe-right);
+    height: 88px;
+    background: var(--ui-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 0 16px;
+    z-index: 10;
+  }
+
+  .toolbar.top {
+    top: 0;
+    padding-top: var(--safe-top);
+    height: calc(88px + var(--safe-top));
+    border-bottom: 1px solid var(--ui-border);
+  }
+
+  .toolbar.bottom {
+    bottom: 0;
+    padding-bottom: var(--safe-bottom);
+    height: calc(88px + var(--safe-bottom));
+    border-top: 1px solid var(--ui-border);
+    overflow-x: auto;
+    justify-content: flex-start;
+    scrollbar-width: none;
+  }
+
+  .toolbar.bottom::-webkit-scrollbar { display: none; }
+
+  .swatch {
+    flex: 0 0 auto;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 4px solid rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    overflow: hidden;
+  }
+
+  .swatch.active {
+    border-color: #fff;
+    transform: scale(1.15);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.25), 0 6px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .swatch.rainbow {
+    background: #1a1a2e;
+  }
+  .swatch.rainbow::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg,
+      #ff0000, #ff8800, #ffee00, #88ff00, #00cc00, #00ddaa,
+      #00aaff, #0044ff, #6633ff, #aa00ff, #ff00aa, #ff0055, #ff0000);
+  }
+
+  .swatch.surprise {
+    background:
+      radial-gradient(circle at 30% 30%, #ff3b30 0 18%, transparent 19%),
+      radial-gradient(circle at 70% 30%, #ffd60a 0 18%, transparent 19%),
+      radial-gradient(circle at 30% 70%, #34c759 0 18%, transparent 19%),
+      radial-gradient(circle at 70% 70%, #0a84ff 0 18%, transparent 19%),
+      radial-gradient(circle at 50% 50%, #af52de 0 18%, transparent 19%),
+      #1a1a2e;
+  }
+
+  .swatch.fireworks {
+    background: #0a0a14;
+  }
+  .swatch.fireworks::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 50% 50%, #fff 0 6%, transparent 7%),
+      conic-gradient(from 0deg,
+        #ff2d92 0deg, transparent 18deg,
+        #ffd60a 36deg, transparent 54deg,
+        #00c7be 72deg, transparent 90deg,
+        #af52de 108deg, transparent 126deg,
+        #ff9500 144deg, transparent 162deg,
+        #34c759 180deg, transparent 198deg,
+        #ff2d92 216deg, transparent 234deg,
+        #0a84ff 252deg, transparent 270deg,
+        #ffd60a 288deg, transparent 306deg,
+        #00c7be 324deg, transparent 342deg);
+    mask-image: radial-gradient(circle, black 5%, black 50%, transparent 60%);
+    -webkit-mask-image: radial-gradient(circle, black 5%, black 50%, transparent 60%);
+  }
+
+  .swatch.starburst {
+    background: #0a0a14;
+  }
+  .swatch.starburst::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    background: radial-gradient(circle at 50% 45%, #fffbe6 0%, #ffd60a 35%, #ff9500 75%, #ff5e00 100%);
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='50,3 61,38 98,38 68,60 79,95 50,73 21,95 32,60 2,38 39,38' fill='black'/></svg>") center/contain no-repeat;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='50,3 61,38 98,38 68,60 79,95 50,73 21,95 32,60 2,38 39,38' fill='black'/></svg>") center/contain no-repeat;
+    filter: drop-shadow(0 0 4px rgba(255, 213, 10, 0.7));
+  }
+
+  .swatch.bubbles {
+    background:
+      radial-gradient(circle at 30% 35%, #ff2d92 0 18%, transparent 19%),
+      radial-gradient(circle at 65% 30%, #ffd60a 0 14%, transparent 15%),
+      radial-gradient(circle at 50% 65%, #0a84ff 0 22%, transparent 23%),
+      radial-gradient(circle at 25% 70%, #00c7be 0 12%, transparent 13%),
+      radial-gradient(circle at 75% 70%, #af52de 0 16%, transparent 17%),
+      #1a1a2e;
+  }
+
+  .swatch.neon {
+    background: #0a0a14;
+    box-shadow:
+      inset 0 0 12px rgba(255,255,255,0.1),
+      0 0 14px #ff00aa,
+      0 0 22px #00aaff,
+      0 4px 12px rgba(0,0,0,0.4);
+  }
+  .swatch.neon::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, #ff00ff, #00ffff, #00ff66, #ffff00, #ff6600, #ff00ff);
+    filter: blur(2px);
+    opacity: 0.85;
+  }
+
+  .paper-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .paper {
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    border: 4px solid rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  }
+
+  .paper.active {
+    border-color: #fff;
+    transform: scale(1.1);
+  }
+
+  .action-btn {
+    flex: 0 0 auto;
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    border: 4px solid rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    padding: 0;
+  }
+
+  .action-btn:active {
+    transform: scale(0.94);
+  }
+
+  .eraser-btn {
+    background:
+      linear-gradient(to bottom, #ff8fb8 0%, #ff8fb8 55%, #d9a36b 55%, #c98a52 100%);
+  }
+  .eraser-btn::before {
+    content: '';
+    position: absolute;
+    left: 14%;
+    right: 14%;
+    top: 18%;
+    height: 12%;
+    background: rgba(255,255,255,0.35);
+    border-radius: 4px;
+    filter: blur(1px);
+  }
+  .eraser-btn::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 55%;
+    height: 2px;
+    background: rgba(0,0,0,0.25);
+  }
+  .eraser-btn.active {
+    border-color: #fff;
+    transform: scale(1.08);
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.25), 0 6px 16px rgba(0,0,0,0.4);
+  }
+
+  .clear-btn {
+    background: linear-gradient(145deg, #ff6b6b, #ee5a5a);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(238, 90, 90, 0.4);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .clear-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.3);
+    transform-origin: left center;
+    transform: scaleX(0);
+    pointer-events: none;
+  }
+
+  .clear-btn.holding::after {
+    transform: scaleX(1);
+    transition: transform 2s linear;
+  }
+
+  .clear-btn svg {
+    width: 32px;
+    height: 32px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .arcade-btn {
+    flex: 0 0 auto;
+    display: none; /* shown via JS only when referrer is the arcade */
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    padding: 0 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1.5px solid rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.88);
+    text-decoration: none;
+    font-family: 'Boogaloo', 'Trebuchet MS', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  .arcade-btn:active {
+    transform: scale(0.94);
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  .spacer {
+    flex: 1 1 auto;
+    min-width: 8px;
+  }
+
+  .action-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .sparkle {
+    position: fixed;
+    pointer-events: none;
+    font-size: 48px;
+    z-index: 100;
+    animation: sparkle-pop 0.8s ease-out forwards;
+  }
+
+  @keyframes sparkle-pop {
+    0% { transform: scale(0) rotate(0deg); opacity: 1; }
+    50% { transform: scale(1.4) rotate(180deg); opacity: 1; }
+    100% { transform: scale(0.6) rotate(360deg); opacity: 0; }
+  }
+
+  @media (max-height: 500px) {
+    .toolbar { height: 76px; }
+    .toolbar.top { height: calc(76px + var(--safe-top)); }
+    .toolbar.bottom { height: calc(76px + var(--safe-bottom)); }
+    #stage {
+      top: calc(var(--safe-top) + 76px);
+      bottom: calc(var(--safe-bottom) + 76px);
+    }
+    .swatch { width: 56px; height: 56px; }
+    .paper { width: 48px; height: 48px; }
+    .action-btn { width: 56px; height: 56px; border-radius: 14px; }
+    .arcade-btn { height: 34px; padding: 0 10px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar top">
+  <a class="arcade-btn" id="arcadeBtn" href="index.html">← ARCADE</a>
+  <div class="paper-row" id="papers"></div>
+  <div class="spacer"></div>
+  <div class="action-group">
+    <button class="action-btn eraser-btn" id="eraserBtn" aria-label="Eraser"></button>
+    <button class="action-btn clear-btn" id="clearBtn" aria-label="Hold to clear">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 6h18"/>
+        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<div id="stage">
+  <canvas id="canvas"></canvas>
+</div>
+
+<div class="toolbar bottom" id="palette"></div>
+
+<script>
+(() => {
+  // ---------- Arcade back link (only when arrived from the NRKade index) ----------
+  (() => {
+    const btn = document.getElementById('arcadeBtn');
+    if (!btn) return;
+    const ref = document.referrer;
+    if (ref && (ref.includes('index') || ref === location.origin + '/')) {
+      btn.style.display = 'inline-flex';
+    }
+  })();
+
+  // ---------- Configuration ----------
+  const COLORS = [
+    '#FF3B30', '#FF9500', '#FFD60A', '#34C759', '#00C7BE',
+    '#0A84FF', '#AF52DE', '#FF2D92', '#A2845E', '#000000', '#FFFFFF',
+  ];
+
+  const PAPERS = [
+    { name: 'White',      color: '#FFFFFF' },
+    { name: 'Chalkboard', color: '#1B3A2E' },
+    { name: 'Kraft',      color: '#C9A876' },
+    { name: 'Sky',        color: '#A6D8F0' },
+    { name: 'Pink',       color: '#FFD1DC' },
+    { name: 'Purple',     color: '#B19CD9' },
+    { name: 'Black',      color: '#0A0A14' },
+  ];
+
+  const EFFECTS = ['rainbow', 'surprise', 'neon', 'fireworks', 'starburst', 'bubbles'];
+
+  const BRUSH_SIZE = 14;
+  const ERASER_SIZE = 40;
+  const CLEAR_HOLD_MS = 2000;
+  const PAPER_STORAGE_KEY = 'doodlepad_paper_index';
+
+  const RAINBOW_HUE_PER_SEC = 220;
+  const NEON_HUE_PER_SEC = 180;
+  const STARBURST_HUE_PER_SEC = 200;
+  const STARBURST_SPACING = 14; // px between stars when dragging
+
+  // ---------- Setup ----------
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const stage = document.getElementById('stage');
+
+  let tool = { type: 'color', color: COLORS[0] };
+  let lastDrawingTool = { ...tool };
+
+  const activeStrokes = new Map();
+  const particles = [];
+
+  // ---------- Canvas sizing ----------
+  function resizeCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = stage.getBoundingClientRect();
+
+    let saved = null;
+    if (canvas.width > 0 && canvas.height > 0) {
+      saved = document.createElement('canvas');
+      saved.width = canvas.width;
+      saved.height = canvas.height;
+      saved.getContext('2d').drawImage(canvas, 0, 0);
+    }
+
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    if (saved) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(saved, 0, 0, saved.width, saved.height, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
+  }
+
+  // ---------- Helpers ----------
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function randomColor() {
+    return COLORS[Math.floor(Math.random() * (COLORS.length - 1))];
+  }
+
+  function hueToRgb(h, l = 0.5) {
+    const s = 1;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const hp = h / 60;
+    const x = c * (1 - Math.abs(hp % 2 - 1));
+    let r1, g1, b1;
+    if (hp < 1)      [r1, g1, b1] = [c, x, 0];
+    else if (hp < 2) [r1, g1, b1] = [x, c, 0];
+    else if (hp < 3) [r1, g1, b1] = [0, c, x];
+    else if (hp < 4) [r1, g1, b1] = [0, x, c];
+    else if (hp < 5) [r1, g1, b1] = [x, 0, c];
+    else             [r1, g1, b1] = [c, 0, x];
+    const m = l - c / 2;
+    return {
+      r: Math.round((r1 + m) * 255),
+      g: Math.round((g1 + m) * 255),
+      b: Math.round((b1 + m) * 255),
+    };
+  }
+
+  function hueToCss(h, l = 0.5) {
+    const { r, g, b } = hueToRgb(h, l);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function gradientStroke(x1, y1, x2, y2, h1, h2, lineWidth, lightness = 0.5) {
+    const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+    const steps = 6;
+    let dh = ((h2 - h1) % 360 + 540) % 360 - 180;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const h = h1 + dh * t;
+      grad.addColorStop(t, hueToCss(h, lightness));
+    }
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+
+  // ---------- Drawing ----------
+  function startStroke(e) {
+    const { x, y } = getPos(e);
+
+    let strokeColor = null;
+    let hue = null;
+
+    if (tool.type === 'color') {
+      strokeColor = tool.color;
+    } else if (tool.type === 'effect') {
+      if (tool.name === 'rainbow' || tool.name === 'neon' || tool.name === 'starburst') {
+        hue = Math.random() * 360;
+        strokeColor = hueToCss(hue);
+      } else if (tool.name === 'surprise') {
+        strokeColor = randomColor();
+      }
+    }
+
+    activeStrokes.set(e.pointerId, {
+      lastX: x, lastY: y,
+      lastStarX: x, lastStarY: y, // tracked separately so star spacing is by distance, not by pointer event
+      color: strokeColor, hue,
+      lastEmit: 0,
+      lastTime: performance.now(),
+    });
+
+    if (tool.type === 'color') {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = strokeColor;
+      ctx.beginPath();
+      ctx.arc(x, y, BRUSH_SIZE / 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (tool.type === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = 'rgba(0,0,0,1)';
+      ctx.beginPath();
+      ctx.arc(x, y, ERASER_SIZE / 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (tool.type === 'effect') {
+      handleEffectDown(tool.name, x, y, strokeColor, hue);
+    }
+  }
+
+  function continueStroke(e) {
+    const stroke = activeStrokes.get(e.pointerId);
+    if (!stroke) return;
+    const { x, y } = getPos(e);
+
+    if (tool.type === 'color') {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = BRUSH_SIZE;
+      ctx.beginPath();
+      ctx.moveTo(stroke.lastX, stroke.lastY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    } else if (tool.type === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.lineWidth = ERASER_SIZE;
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+      ctx.beginPath();
+      ctx.moveTo(stroke.lastX, stroke.lastY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    } else if (tool.type === 'effect') {
+      handleEffectMove(tool.name, stroke, x, y);
+    }
+
+    stroke.lastX = x;
+    stroke.lastY = y;
+  }
+
+  function endStroke(e) {
+    activeStrokes.delete(e.pointerId);
+  }
+
+  // ---------- Effects ----------
+  function handleEffectDown(name, x, y, color, hue) {
+    if (name === 'rainbow' || name === 'surprise') {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, BRUSH_SIZE / 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (name === 'neon') {
+      drawNeonDot(x, y, hue);
+    } else if (name === 'bubbles') {
+      drawBubble(x, y, randomColor());
+    } else if (name === 'fireworks') {
+      emitFirework(x, y);
+    } else if (name === 'starburst') {
+      drawStar(x, y, hueToCss(hue), 18 + Math.random() * 12);
+    }
+  }
+
+  function handleEffectMove(name, stroke, x, y) {
+    const dx = x - stroke.lastX, dy = y - stroke.lastY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const now = performance.now();
+    const dt = (now - stroke.lastTime) / 1000;
+    stroke.lastTime = now;
+
+    if (name === 'rainbow') {
+      const prevHue = stroke.hue;
+      stroke.hue = (stroke.hue + RAINBOW_HUE_PER_SEC * dt) % 360;
+      ctx.globalCompositeOperation = 'source-over';
+      gradientStroke(stroke.lastX, stroke.lastY, x, y, prevHue, stroke.hue, BRUSH_SIZE);
+    } else if (name === 'surprise') {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = BRUSH_SIZE;
+      ctx.beginPath();
+      ctx.moveTo(stroke.lastX, stroke.lastY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    } else if (name === 'neon') {
+      const prevHue = stroke.hue;
+      stroke.hue = (stroke.hue + NEON_HUE_PER_SEC * dt) % 360;
+      drawNeonSegment(stroke.lastX, stroke.lastY, x, y, prevHue, stroke.hue);
+    } else if (name === 'bubbles') {
+      if (dist > 18) drawBubble(x, y, randomColor());
+    } else if (name === 'fireworks') {
+      const t = Date.now();
+      if (dist > 80 || t - stroke.lastEmit > 250) {
+        emitFirework(x, y);
+        stroke.lastEmit = t;
+      }
+    } else if (name === 'starburst') {
+      // Drop stars evenly along the path with smooth hue cycling.
+      // We measure from the last-placed star so spacing stays consistent
+      // even when the pointer fires events rapidly.
+      const sdx = x - stroke.lastStarX, sdy = y - stroke.lastStarY;
+      const sdist = Math.sqrt(sdx * sdx + sdy * sdy);
+      if (sdist >= STARBURST_SPACING) {
+        const steps = Math.floor(sdist / STARBURST_SPACING);
+        for (let i = 1; i <= steps; i++) {
+          const t = i / steps;
+          const sx = stroke.lastStarX + sdx * t;
+          const sy = stroke.lastStarY + sdy * t;
+          stroke.hue = (stroke.hue + STARBURST_HUE_PER_SEC * (dt / steps)) % 360;
+          drawStar(sx, sy, hueToCss(stroke.hue), 14 + Math.random() * 10);
+        }
+        stroke.lastStarX = x;
+        stroke.lastStarY = y;
+      }
+    }
+  }
+
+  function drawNeonSegment(x1, y1, x2, y2, h1, h2) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+
+    ctx.shadowColor = hueToCss(h2, 0.55);
+    ctx.shadowBlur = 28;
+    gradientStroke(x1, y1, x2, y2, h1, h2, 12, 0.5);
+
+    ctx.shadowBlur = 14;
+    gradientStroke(x1, y1, x2, y2, h1, h2, 6, 0.55);
+
+    ctx.shadowColor = hueToCss(h2, 0.55);
+    ctx.shadowBlur = 8;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawNeonDot(x, y, hue) {
+    drawNeonSegment(x, y, x + 0.01, y + 0.01, hue, hue);
+  }
+
+  function drawBubble(x, y, color) {
+    ctx.globalCompositeOperation = 'source-over';
+    const r = 18 + Math.random() * 22;
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.45;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x - r * 0.3, y - r * 0.3, r * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  function drawStar(x, y, color, size) {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    const spikes = 5;
+    const outer = size;
+    const inner = size * 0.45;
+    const rotation = Math.random() * Math.PI * 2;
+    for (let i = 0; i < spikes * 2; i++) {
+      const r = (i % 2 === 0) ? outer : inner;
+      const angle = rotation + (i * Math.PI) / spikes;
+      const px = x + Math.cos(angle) * r;
+      const py = y + Math.sin(angle) * r;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function emitFirework(x, y) {
+    const count = 24 + Math.floor(Math.random() * 12);
+    const baseHue = Math.random() * 360;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.2;
+      const speed = 2 + Math.random() * 4;
+      particles.push({
+        x, y,
+        prevX: x,
+        prevY: y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1,
+        decay: 0.012 + Math.random() * 0.012,
+        color: hueToCss((baseHue + Math.random() * 60) % 360),
+        size: 2.5 + Math.random() * 2.5,
+        gravity: 0.08,
+      });
+    }
+  }
+
+  function tickParticles() {
+    if (particles.length > 0) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.lineCap = 'round';
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.prevX = p.x;
+        p.prevY = p.y;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += p.gravity;
+        p.vx *= 0.99;
+        p.life -= p.decay;
+
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = p.size;
+        ctx.beginPath();
+        ctx.moveTo(p.prevX, p.prevY);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+        }
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+    requestAnimationFrame(tickParticles);
+  }
+  requestAnimationFrame(tickParticles);
+
+  // ---------- Pointer events ----------
+  canvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+    startStroke(e);
+  });
+  canvas.addEventListener('pointermove', continueStroke);
+  canvas.addEventListener('pointerup', endStroke);
+  canvas.addEventListener('pointercancel', endStroke);
+
+  // ---------- Build palette ----------
+  const palette = document.getElementById('palette');
+
+  function buildPalette() {
+    palette.innerHTML = '';
+
+    COLORS.forEach((color, i) => {
+      const sw = document.createElement('button');
+      sw.className = 'swatch' + (i === 0 ? ' active' : '');
+      sw.style.background = color;
+      sw.setAttribute('aria-label', `Color ${i + 1}`);
+      sw.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        selectDrawingTool({ type: 'color', color }, sw);
+      });
+      palette.appendChild(sw);
+    });
+
+    EFFECTS.forEach(name => {
+      const sw = document.createElement('button');
+      sw.className = `swatch ${name}`;
+      sw.setAttribute('aria-label', name);
+      sw.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        selectDrawingTool({ type: 'effect', name }, sw);
+      });
+      palette.appendChild(sw);
+    });
+  }
+
+  function selectDrawingTool(newTool, el) {
+    tool = newTool;
+    lastDrawingTool = { ...newTool };
+    document.querySelectorAll('#palette .swatch').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    eraserBtn.classList.remove('active');
+  }
+
+  // ---------- Eraser ----------
+  const eraserBtn = document.getElementById('eraserBtn');
+  eraserBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (tool.type === 'eraser') {
+      tool = { ...lastDrawingTool };
+      eraserBtn.classList.remove('active');
+      restoreSwatchHighlight();
+    } else {
+      tool = { type: 'eraser' };
+      eraserBtn.classList.add('active');
+      document.querySelectorAll('#palette .swatch').forEach(s => s.classList.remove('active'));
+    }
+  });
+
+  function restoreSwatchHighlight() {
+    document.querySelectorAll('#palette .swatch').forEach(s => s.classList.remove('active'));
+    const swatches = palette.querySelectorAll('.swatch');
+    if (lastDrawingTool.type === 'color') {
+      const idx = COLORS.indexOf(lastDrawingTool.color);
+      if (idx >= 0 && swatches[idx]) swatches[idx].classList.add('active');
+    } else if (lastDrawingTool.type === 'effect') {
+      const idx = COLORS.length + EFFECTS.indexOf(lastDrawingTool.name);
+      if (idx >= 0 && swatches[idx]) swatches[idx].classList.add('active');
+    }
+  }
+
+  // ---------- Paper picker ----------
+  const papersEl = document.getElementById('papers');
+  let currentPaperIndex = 0;
+
+  function buildPapers() {
+    papersEl.innerHTML = '';
+    PAPERS.forEach((paper, i) => {
+      const p = document.createElement('button');
+      p.className = 'paper' + (i === currentPaperIndex ? ' active' : '');
+      p.style.background = paper.color;
+      p.setAttribute('aria-label', `${paper.name} background`);
+      p.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        applyPaper(i);
+        try { localStorage.setItem(PAPER_STORAGE_KEY, String(i)); } catch (_) {}
+      });
+      papersEl.appendChild(p);
+    });
+  }
+
+  function applyPaper(i) {
+    currentPaperIndex = i;
+    stage.style.background = PAPERS[i].color;
+    document.querySelectorAll('#papers .paper').forEach((el, idx) => {
+      el.classList.toggle('active', idx === i);
+    });
+  }
+
+  function pickStartingPaper() {
+    let next = 0;
+    try {
+      const last = parseInt(localStorage.getItem(PAPER_STORAGE_KEY), 10);
+      if (!isNaN(last)) next = (last + 1) % PAPERS.length;
+    } catch (_) {}
+    currentPaperIndex = next;
+    try { localStorage.setItem(PAPER_STORAGE_KEY, String(next)); } catch (_) {}
+  }
+
+  // ---------- Clear (long-press 2s) ----------
+  const clearBtn = document.getElementById('clearBtn');
+  let clearTimer = null;
+
+  function clearAll() {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    particles.length = 0;
+
+    const rect = clearBtn.getBoundingClientRect();
+    const s = document.createElement('div');
+    s.className = 'sparkle';
+    s.textContent = '✨';
+    s.style.left = (rect.left + rect.width / 2 - 24) + 'px';
+    s.style.top = (rect.top + rect.height / 2 - 24) + 'px';
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 800);
+  }
+
+  function startHold(e) {
+    e.preventDefault();
+    clearBtn.classList.add('holding');
+    clearTimer = setTimeout(() => {
+      clearAll();
+      clearBtn.classList.remove('holding');
+      clearTimer = null;
+    }, CLEAR_HOLD_MS);
+  }
+
+  function cancelHold() {
+    if (clearTimer) {
+      clearTimeout(clearTimer);
+      clearTimer = null;
+    }
+    clearBtn.classList.remove('holding');
+  }
+
+  clearBtn.addEventListener('pointerdown', startHold);
+  clearBtn.addEventListener('pointerup', cancelHold);
+  clearBtn.addEventListener('pointerleave', cancelHold);
+  clearBtn.addEventListener('pointercancel', cancelHold);
+
+  // ---------- Init ----------
+  pickStartingPaper();
+  buildPapers();
+  buildPalette();
+  resizeCanvas();
+  applyPaper(currentPaperIndex);
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resizeCanvas, 100);
+  });
+  window.addEventListener('orientationchange', () => {
+    setTimeout(resizeCanvas, 200);
+  });
+
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
+  document.addEventListener('gesturechange', (e) => e.preventDefault());
+  document.addEventListener('gestureend', (e) => e.preventDefault());
+
+  let lastTap = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTap < 300) e.preventDefault();
+    lastTap = now;
+  }, { passive: false });
+
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+})();
+</script>
+</body>
+</html>
