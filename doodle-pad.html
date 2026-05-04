@@ -316,18 +316,18 @@
     flex: 0 0 auto;
     display: none; /* shown via JS only when referrer is the arcade */
     align-items: center;
-    gap: 6px;
-    height: 40px;
-    padding: 0 12px;
-    border-radius: 10px;
+    gap: 4px;
+    height: 38px;
+    padding: 0 10px;
+    border-radius: 9px;
     background: rgba(255, 255, 255, 0.08);
     border: 1.5px solid rgba(255, 255, 255, 0.18);
     color: rgba(255, 255, 255, 0.88);
     text-decoration: none;
     font-family: 'Boogaloo', 'Trebuchet MS', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 1.5px;
+    letter-spacing: 1px;
     text-transform: uppercase;
     white-space: nowrap;
     transition: background 0.15s ease, transform 0.1s ease;
@@ -337,6 +337,16 @@
     background: rgba(255, 255, 255, 0.14);
   }
 
+  .fs-btn {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .fs-btn svg {
+    width: 28px;
+    height: 28px;
+    pointer-events: none;
+  }
+
   .spacer {
     flex: 1 1 auto;
     min-width: 8px;
@@ -344,7 +354,7 @@
 
   .action-group {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
   }
 
@@ -373,7 +383,8 @@
     .swatch { width: 56px; height: 56px; }
     .paper { width: 48px; height: 48px; }
     .action-btn { width: 56px; height: 56px; border-radius: 14px; }
-    .arcade-btn { height: 34px; padding: 0 10px; font-size: 12px; }
+    .fs-btn svg { width: 24px; height: 24px; }
+    .arcade-btn { height: 32px; padding: 0 8px; font-size: 11px; }
   }
 </style>
 </head>
@@ -383,6 +394,14 @@
   <a class="arcade-btn" id="arcadeBtn" href="index.html">← ARCADE</a>
   <div class="paper-row" id="papers"></div>
   <div class="action-group">
+    <button class="action-btn fs-btn" id="fsBtn" aria-label="Toggle fullscreen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 9V5a1 1 0 0 1 1-1h4"/>
+        <path d="M20 9V5a1 1 0 0 0-1-1h-4"/>
+        <path d="M4 15v4a1 1 0 0 0 1 1h4"/>
+        <path d="M20 15v4a1 1 0 0 1-1 1h-4"/>
+      </svg>
+    </button>
     <button class="action-btn eraser-btn" id="eraserBtn" aria-label="Eraser"></button>
     <button class="action-btn clear-btn" id="clearBtn" aria-label="Hold to clear">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -412,6 +431,25 @@
     }
   })();
 
+  // ---------- Fullscreen toggle ----------
+  (() => {
+    const btn = document.getElementById('fsBtn');
+    if (!btn) return;
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const el = document.documentElement;
+      const isFs = document.fullscreenElement || document.webkitFullscreenElement;
+      if (!isFs) {
+        const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
+        if (req) req.call(el);
+      } else {
+        const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen;
+        if (exit) exit.call(document);
+      }
+    });
+  })();
+
   // ---------- Configuration ----------
   const COLORS = [
     '#FF3B30', '#FF9500', '#FFD60A', '#34C759', '#00C7BE',
@@ -419,13 +457,12 @@
   ];
 
   const PAPERS = [
-    { name: 'White',      color: '#FFFFFF' },
-    { name: 'Chalkboard', color: '#1B3A2E' },
-    { name: 'Kraft',      color: '#C9A876' },
-    { name: 'Sky',        color: '#A6D8F0' },
-    { name: 'Pink',       color: '#FFD1DC' },
-    { name: 'Purple',     color: '#B19CD9' },
-    { name: 'Black',      color: '#0A0A14' },
+    { name: 'White',  color: '#FFFFFF' },
+    { name: 'Black',  color: '#0A0A14' },
+    { name: 'Blue',   color: '#1E88E5' },
+    { name: 'Green',  color: '#2EAD4A' },
+    { name: 'Pink',   color: '#FF4DA6' },
+    { name: 'Purple', color: '#8E44E0' },
   ];
 
   const EFFECTS = ['rainbow', 'surprise', 'neon', 'fireworks', 'starburst', 'bubbles'];
@@ -439,6 +476,7 @@
   const NEON_HUE_PER_SEC = 180;
   const STARBURST_HUE_PER_SEC = 200;
   const STARBURST_SPACING = 14; // px between stars when dragging
+  const BUBBLE_SPACING = 28;    // px between bubbles when dragging
 
   // ---------- Setup ----------
   const canvas = document.getElementById('canvas');
@@ -554,6 +592,7 @@
     activeStrokes.set(e.pointerId, {
       lastX: x, lastY: y,
       lastStarX: x, lastStarY: y, // tracked separately so star spacing is by distance, not by pointer event
+      lastBubbleX: x, lastBubbleY: y, // same for bubbles
       color: strokeColor, hue,
       lastEmit: 0,
       lastTime: performance.now(),
@@ -653,7 +692,24 @@
       stroke.hue = (stroke.hue + NEON_HUE_PER_SEC * dt) % 360;
       drawNeonSegment(stroke.lastX, stroke.lastY, x, y, prevHue, stroke.hue);
     } else if (name === 'bubbles') {
-      if (dist > 18) drawBubble(x, y, randomColor());
+      // Drop bubbles evenly along the path, measured from the last placed
+      // bubble (not the last pointer event) so spacing stays consistent
+      // whether the drag is slow or fast. Mirrors the starburst fix.
+      const bdx = x - stroke.lastBubbleX, bdy = y - stroke.lastBubbleY;
+      const bdist = Math.sqrt(bdx * bdx + bdy * bdy);
+      if (bdist >= BUBBLE_SPACING) {
+        const steps = Math.floor(bdist / BUBBLE_SPACING);
+        for (let i = 1; i <= steps; i++) {
+          const t = i / steps;
+          drawBubble(
+            stroke.lastBubbleX + bdx * t,
+            stroke.lastBubbleY + bdy * t,
+            randomColor()
+          );
+        }
+        stroke.lastBubbleX = x;
+        stroke.lastBubbleY = y;
+      }
     } else if (name === 'fireworks') {
       const t = Date.now();
       if (dist > 80 || t - stroke.lastEmit > 250) {
@@ -816,19 +872,8 @@
   function buildPalette() {
     palette.innerHTML = '';
 
-    COLORS.forEach((color, i) => {
-      const sw = document.createElement('button');
-      sw.className = 'swatch' + (i === 0 ? ' active' : '');
-      sw.style.background = color;
-      sw.setAttribute('aria-label', `Color ${i + 1}`);
-      sw.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        selectDrawingTool({ type: 'color', color }, sw);
-      });
-      palette.appendChild(sw);
-    });
-
+    // Effects first — the special brushes are the signature feature, so they
+    // get the prime leftmost slots in the palette where eyes land first.
     EFFECTS.forEach(name => {
       const sw = document.createElement('button');
       sw.className = `swatch ${name}`;
@@ -840,6 +885,22 @@
       });
       palette.appendChild(sw);
     });
+
+    COLORS.forEach((color, i) => {
+      const sw = document.createElement('button');
+      sw.className = 'swatch';
+      sw.style.background = color;
+      sw.setAttribute('aria-label', `Color ${i + 1}`);
+      sw.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        selectDrawingTool({ type: 'color', color }, sw);
+      });
+      palette.appendChild(sw);
+    });
+
+    // Mark the currently-selected tool active (handles render-order independence)
+    restoreSwatchHighlight();
   }
 
   function selectDrawingTool(newTool, el) {
@@ -869,11 +930,12 @@
   function restoreSwatchHighlight() {
     document.querySelectorAll('#palette .swatch').forEach(s => s.classList.remove('active'));
     const swatches = palette.querySelectorAll('.swatch');
-    if (lastDrawingTool.type === 'color') {
-      const idx = COLORS.indexOf(lastDrawingTool.color);
+    // Effects render first, then colors — index calculation must match
+    if (lastDrawingTool.type === 'effect') {
+      const idx = EFFECTS.indexOf(lastDrawingTool.name);
       if (idx >= 0 && swatches[idx]) swatches[idx].classList.add('active');
-    } else if (lastDrawingTool.type === 'effect') {
-      const idx = COLORS.length + EFFECTS.indexOf(lastDrawingTool.name);
+    } else if (lastDrawingTool.type === 'color') {
+      const idx = EFFECTS.length + COLORS.indexOf(lastDrawingTool.color);
       if (idx >= 0 && swatches[idx]) swatches[idx].classList.add('active');
     }
   }
