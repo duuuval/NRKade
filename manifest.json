@@ -1,0 +1,25 @@
+{
+  "name": "NRKade",
+  "short_name": "NRKade",
+  "description": "A small arcade of browser games — racing, demolition, doodle pad and more.",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d0820",
+  "theme_color": "#1a0f2e",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
