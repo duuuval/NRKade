@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>PILLAR JUMP - NRKade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:#1a3a6a;overflow:hidden;font-family:'Trebuchet MS',Tahoma,sans-serif;touch-action:none;-webkit-tap-highlight-color:transparent}
+#gameWrapper{position:relative;display:flex;flex-direction:column;width:100vw;height:100svh;height:100dvh}
+#hud{position:absolute;top:0;left:0;right:0;width:100%;background:linear-gradient(to bottom, rgba(126,200,255,0.85), rgba(126,200,255,0));pointer-events:none;z-index:10;padding-top:env(safe-area-inset-top,0px)}
+#hudRow{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;gap:8px}
+#backBtn{pointer-events:all;background:rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.2);border-radius:7px;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;padding:5px 10px;cursor:pointer;text-decoration:none;display:none}
+.hpill{background:rgba(0,0,0,.62);border:1.5px solid rgba(255,255,255,.18);border-radius:8px;padding:4px 12px;font-size:13px;font-weight:900;letter-spacing:1px;color:#fff;white-space:nowrap}
+.hpill .lbl{opacity:.55;font-weight:400;font-size:9px;margin-right:3px;letter-spacing:1px}
+#scorePill{color:#fff;font-size:16px;padding:5px 16px}
+#scorePill .lbl{font-size:10px}
+#timerPill{color:#0f8;font-family:monospace;font-size:15px;min-width:70px;text-align:center}
+#timerPill.warn{color:#ffaa00}
+#timerPill.crit{color:#ff3322;animation:pulse .35s infinite alternate}
+@keyframes pulse{from{transform:scale(1)}to{transform:scale(1.08)}}
+#pauseBtn,#muteBtn,#fsBtn{pointer-events:all;background:rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.18);border-radius:7px;color:rgba(255,255,255,.75);font-size:11px;font-weight:700;padding:5px 10px;height:30px;display:flex;align-items:center;cursor:pointer;user-select:none}
+#canvasArea{position:relative;flex:1 1 auto;min-height:0;display:block;background:#3a6aa0;overflow:hidden}
+canvas{display:block;width:100%;height:100%}
+#ov{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,18,40,.92);z-index:20;gap:12px;text-align:center;padding:20px}
+#ov h1{font-weight:900;font-size:clamp(24px,7vw,56px);letter-spacing:3px;line-height:1;font-style:italic}
+#ov .sub{font-size:clamp(11px,2.5vw,15px);color:#9cc;letter-spacing:1px;max-width:520px;line-height:1.4}
+.cy{color:#ffdd00;text-shadow:0 0 22px #fa0}
+.cg{color:#0f8;text-shadow:0 0 22px #0c6}
+.cr{color:#f53;text-shadow:0 0 22px #c20}
+.cs{color:#ccc;text-shadow:0 0 18px #889}
+.cb{color:#5cf;text-shadow:0 0 22px #29c}
+.slbl{font-size:10px;font-weight:900;color:#557;letter-spacing:3px;text-transform:uppercase;margin-top:4px}
+#goBtn{margin-top:6px;padding:14px 40px;font-weight:900;font-size:19px;letter-spacing:3px;font-style:italic;background:linear-gradient(135deg,#28b,#5cf);color:#fff;border:none;border-radius:12px;cursor:pointer;box-shadow:0 0 28px rgba(80,200,255,.55);pointer-events:all}
+#goBtn:active{transform:scale(.96)}
+#resIcon{font-size:clamp(48px,11vw,80px)}
+.statRow{display:flex;gap:24px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 22px}
+.statRow .col{display:flex;flex-direction:column;align-items:center;gap:2px}
+.statRow .v{font-size:24px;font-weight:900;color:#fff}
+.statRow .k{font-size:9px;color:#789;letter-spacing:2px;text-transform:uppercase}
+#ctrl{flex:0 0 auto;padding:10px 14px calc(env(safe-area-inset-bottom,16px) + 12px);display:flex;justify-content:center;align-items:flex-end;pointer-events:none;background:#3a6aa0}
+#jumpBtn{pointer-events:all;width:min(220px,55vw);height:78px;background:linear-gradient(135deg,#28b,#5cf);border:2px solid #7df;border-radius:18px;color:#fff;font-size:22px;font-weight:900;letter-spacing:4px;font-style:italic;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;box-shadow:0 0 18px rgba(80,200,255,.5)}
+#jumpBtn.pr{transform:scale(.94);box-shadow:0 0 28px rgba(80,200,255,.85)}
+#hud,#ctrl{visibility:hidden}
+body.playing #hud,body.playing #ctrl{visibility:visible}
+.hint{font-size:12px;color:#7ab;background:rgba(0,0,0,.3);border:1px solid rgba(120,180,210,.25);border-radius:8px;padding:8px 14px;margin-top:4px;line-height:1.5}
+.hint b{color:#cef}
+</style>
+</head>
+<body>
+<div id="gameWrapper">
+
+<div id="hud">
+  <div id="hudRow">
+    <a id="backBtn" href="index.html">← ARCADE</a>
+    <div class="hpill" id="scorePill"><span class="lbl">SCORE</span><span id="scoreV">0</span></div>
+    <div class="hpill" id="timerPill"><span id="timerV">10.0</span></div>
+    <div id="pauseBtn">⏸</div>
+    <div id="muteBtn">🔊</div>
+    <div id="fsBtn">⛶</div>
+  </div>
+</div>
+
+<div id="canvasArea">
+<canvas id="c"></canvas>
+<div id="ov">
+  <h1 class="cb">☁️ PILLAR JUMP</h1>
+  <div class="sub">Hop pillar to pillar. Dodge the saws. Don't linger — bombs drop after 10 seconds.</div>
+  <div class="hint">
+    <b>TAP</b> the JUMP button (or <b>SPACE</b>) to leap to the next pillar.<br>
+    One tap per pillar. No mid-air jumps.
+  </div>
+  <button id="goBtn">▶ START</button>
+</div>
+</div>
+
+<div id="ctrl">
+  <div id="jumpBtn">JUMP</div>
+</div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// PILLAR JUMP — NRKade
+// Single-button platformer. Hop pillar to pillar, dodge vertical saws,
+// don't camp (10s bomb timer).
+// ═══════════════════════════════════════════════════════════════════════════
+
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const canvasArea=document.getElementById('canvasArea');
+let W,H,isPhone;
+function rsz(){
+  // Measure the actual canvas area (after HUD/controls take their share).
+  // We render at the area's pixel size so there's no letterbox and no upscale.
+  const rect = canvasArea.getBoundingClientRect();
+  let pxW = Math.max(280, Math.floor(rect.width));
+  let pxH = Math.max(380, Math.floor(rect.height));
+
+  // Cap the long edge to keep draw cost reasonable; preserve aspect.
+  const MAX = 1100;
+  const long = Math.max(pxW, pxH);
+  if(long > MAX){
+    const k = MAX/long;
+    pxW = Math.floor(pxW*k);
+    pxH = Math.floor(pxH*k);
+  }
+
+  W = pxW; H = pxH;
+  isPhone = Math.min(window.innerWidth, window.innerHeight) < 550;
+  cv.width = W; cv.height = H;
+  // CSS sizing handled by canvasArea flex — canvas just fills it.
+}
+// Resize via ResizeObserver (catches HUD show/hide too); fall back to window resize.
+if(window.ResizeObserver){
+  new ResizeObserver(rsz).observe(canvasArea);
+} else {
+  window.addEventListener('resize', rsz);
+}
+// First measure happens after a frame so flex layout settles.
+requestAnimationFrame(rsz);
+rsz();
+
+// Referrer-detected back button (matches NRKade pattern)
+(()=>{const r=document.referrer,b=document.getElementById('backBtn');if(r&&(r.includes('index')||r===location.origin+'/'))b.style.display='inline-flex';})();
+
+// ── AUDIO ──────────────────────────────────────────────────────────────────
+let actx=null;
+let muted=false;
+try { muted = localStorage.getItem('pillarJumperMuted')==='1'; } catch(e){}
+function getAC(){
+  if(muted) return null;  // short-circuits every sound function downstream
+  if(!actx){
+    try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}
+  }
+  if(actx&&actx.state==='suspended')actx.resume();
+  return actx;
+}
+function beep(freq,dur,type='sine',vol=0.18,attack=0.005,decay=null){
+  const a=getAC();if(!a)return;
+  const o=a.createOscillator(),g=a.createGain();
+  o.type=type;o.frequency.value=freq;
+  o.connect(g);g.connect(a.destination);
+  const now=a.currentTime;
+  g.gain.setValueAtTime(0,now);
+  g.gain.linearRampToValueAtTime(vol,now+attack);
+  g.gain.exponentialRampToValueAtTime(0.0001,now+dur);
+  o.start(now);o.stop(now+dur+0.02);
+}
+function sJump(){
+  // Quick rising blip
+  const a=getAC();if(!a)return;
+  const o=a.createOscillator(),g=a.createGain();
+  o.type='triangle';
+  o.frequency.setValueAtTime(420,a.currentTime);
+  o.frequency.exponentialRampToValueAtTime(780,a.currentTime+0.12);
+  g.gain.setValueAtTime(0,a.currentTime);
+  g.gain.linearRampToValueAtTime(0.18,a.currentTime+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+0.14);
+  o.connect(g);g.connect(a.destination);
+  o.start();o.stop(a.currentTime+0.16);
+}
+function sLand(){
+  // Soft low thud + tick
+  beep(180,0.08,'square',0.12);
+  setTimeout(()=>beep(540,0.04,'sine',0.08),20);
+}
+function sScore(){
+  // Tiny upward chime
+  beep(880,0.06,'sine',0.10);
+  setTimeout(()=>beep(1320,0.07,'sine',0.08),40);
+}
+function sSaw(){
+  // Harsh sawtooth buzz
+  const a=getAC();if(!a)return;
+  const o=a.createOscillator(),g=a.createGain(),f=a.createBiquadFilter();
+  o.type='sawtooth';
+  o.frequency.setValueAtTime(220,a.currentTime);
+  o.frequency.exponentialRampToValueAtTime(60,a.currentTime+0.55);
+  f.type='lowpass';f.frequency.value=900;
+  g.gain.setValueAtTime(0.0001,a.currentTime);
+  g.gain.linearRampToValueAtTime(0.32,a.currentTime+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+0.6);
+  o.connect(f);f.connect(g);g.connect(a.destination);
+  o.start();o.stop(a.currentTime+0.65);
+}
+function sBomb(){
+  // Whistling drop + boom
+  const a=getAC();if(!a)return;
+  // Whistle
+  const o1=a.createOscillator(),g1=a.createGain();
+  o1.type='sine';
+  o1.frequency.setValueAtTime(1400,a.currentTime);
+  o1.frequency.exponentialRampToValueAtTime(180,a.currentTime+0.7);
+  g1.gain.setValueAtTime(0.12,a.currentTime);
+  g1.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.72);
+  o1.connect(g1);g1.connect(a.destination);
+  o1.start();o1.stop(a.currentTime+0.75);
+  // Boom (noise burst)
+  setTimeout(()=>{
+    const ac=getAC();if(!ac)return;
+    const buf=ac.createBuffer(1,ac.sampleRate*0.5,ac.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2);
+    const src=ac.createBufferSource(),fl=ac.createBiquadFilter(),gn=ac.createGain();
+    src.buffer=buf;fl.type='lowpass';fl.frequency.value=400;
+    gn.gain.value=0.45;
+    src.connect(fl);fl.connect(gn);gn.connect(ac.destination);
+    src.start();
+  },700);
+}
+function sTick(){beep(660,0.04,'square',0.07);}
+
+// ── GAME CONSTANTS ─────────────────────────────────────────────────────────
+// World coordinates: x grows right. Player anchor stays at ~1/3 from left.
+// Camera shifts left as player progresses, so world scrolls past.
+
+// Tuning notes:
+// - Pillar spacing is FIXED. Jump arc must clear the widest gap with margin.
+// - Pillar heights vary but tops are clamped so jump arc always clears them.
+// - Saws live in the gap between pillars, oscillating vertically (sine).
+// - Saw speed ramps with score. After ~15 pillars, occasional doubles.
+
+const PILLAR_W = 110;            // pillar width in world units
+const PILLAR_GAP = 140;          // gap between pillars (saws live here)
+const PILLAR_PITCH = PILLAR_W + PILLAR_GAP; // distance pillar-to-pillar
+const PILLAR_TOP_MIN_RATIO = 0.45; // pillar top y as ratio of canvas H (lower = taller)
+const PILLAR_TOP_MAX_RATIO = 0.62;
+const PILLAR_LENGTH_RATIO = 0.30; // pillar visible length (top-to-cloud) as ratio of H
+const PLAYER_ANCHOR_RATIO = 0.30; // where on screen the player sits (x)
+
+// Cloud shape pool — each pillar gets one assigned at creation.
+// Shapes are arrays of {dx,dy,r} blobs, drawn as overlapping circles.
+// Coords are in "cloud units" — scaled at draw time to roughly PILLAR_W*1.7 wide.
+const CLOUD_SHAPES = [
+  // Wide low cloud — 5 blobs spread horizontally
+  [{dx:-46,dy:0,r:28},{dx:-22,dy:-8,r:32},{dx:4,dy:-4,r:34},{dx:30,dy:-6,r:30},{dx:52,dy:2,r:26}],
+  // Compact rounded cloud — 4 blobs
+  [{dx:-30,dy:2,r:30},{dx:-6,dy:-10,r:34},{dx:20,dy:-6,r:32},{dx:42,dy:4,r:26}],
+  // Lumpy asymmetric cloud — bigger bump on left
+  [{dx:-44,dy:-4,r:34},{dx:-14,dy:2,r:30},{dx:14,dy:-2,r:28},{dx:38,dy:4,r:24},{dx:56,dy:6,r:20}],
+  // Tall puffy cloud — stacked blob arrangement
+  [{dx:-32,dy:0,r:28},{dx:-8,dy:-14,r:32},{dx:18,dy:-10,r:30},{dx:42,dy:0,r:26},{dx:6,dy:6,r:26}],
+];
+
+const PLAYER_W = 30;
+const PLAYER_H = 44;
+
+// Jump physics — tuned so arc reaches the next pillar top cleanly with margin
+// Arc duration in seconds, peak height above takeoff
+const JUMP_DURATION = 0.62;      // seconds in air
+const JUMP_PEAK_H = 130;         // how high above pillar top the arc peaks
+
+// Saw config
+const SAW_R = 26;                // saw blade radius
+const SAW_BASE_SPEED = 1.6;      // base oscillation speed (rad/sec)
+const SAW_SPEED_RAMP = 0.05;     // added per pillar score
+const SAW_MAX_SPEED = 4.2;       // cap
+const SAW_GRACE_PILLARS = 4;     // first N gaps have no saws (warmup)
+
+const BOMB_TIMER = 10.0;         // seconds before bomb drops
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let state;  // 'menu' | 'playing' | 'jumping' | 'falling' | 'bombing' | 'dead' | 'paused'
+let pillars; // array of {x, topY, sawCount, sawPhases, sawSpeed, sawRange}
+let player;  // {worldX, y, vy (only in falling state), onPillarIdx, jumpFromIdx, jumpStartT}
+let camera;  // {x} — world x at left edge of screen
+let score;
+let timerRemaining;
+let lastFrameTime;
+let pausedFromState;
+let bombPos;     // {x, y, vy} during bombing animation
+let deathFlash;
+let explosion;  // {x, y, t} cartoon bomb explosion — null when inactive
+let nextPillarId;  // monotonic counter — pillar's true world ID, used for x position and difficulty. Never decremented by culling.
+let bestScore = 0;
+try { bestScore = parseInt(localStorage.getItem('pillarJumperBest')||'0',10)||0; } catch(e){}
+
+// Background parallax
+let cloudOffset = 0;
+const clouds = [];
+function initClouds(){
+  clouds.length=0;
+  for(let i=0;i<8;i++){
+    clouds.push({
+      x: Math.random()*W*1.5,
+      yRatio: 0.05 + Math.random()*0.35, // resolved to pixels at draw time
+      scale: 0.6 + Math.random()*0.7,
+      speed: 0.15 + Math.random()*0.15
+    });
+  }
+}
+initClouds();
+
+// ── PILLAR GENERATION ──────────────────────────────────────────────────────
+function pillarTopY(){
+  return H*(PILLAR_TOP_MIN_RATIO + Math.random()*(PILLAR_TOP_MAX_RATIO-PILLAR_TOP_MIN_RATIO));
+}
+
+function makePillar(idx){
+  const x = idx * PILLAR_PITCH;
+  const topY = pillarTopY();
+
+  // Saw config for the gap AFTER this pillar (between idx and idx+1)
+  // Note: first SAW_GRACE_PILLARS gaps are saw-free
+  let sawCount = 0;
+  let sawPhases = [];
+  let sawSpeed = 0;
+  let sawRange = 0;
+
+  if(idx >= SAW_GRACE_PILLARS){
+    const scoreInGap = idx - SAW_GRACE_PILLARS;
+    // Single saw always; double saws appear occasionally after gap 11
+    sawCount = 1;
+    if(scoreInGap >= 11 && Math.random() < 0.35) sawCount = 2;
+
+    sawSpeed = Math.min(SAW_MAX_SPEED, SAW_BASE_SPEED + scoreInGap * SAW_SPEED_RAMP);
+
+    for(let s=0;s<sawCount;s++){
+      sawPhases.push(Math.random()*Math.PI*2);
+    }
+    sawRange = 1; // full vertical range (between pillar tops and ground band)
+  }
+
+  return {
+    x, topY,
+    sawCount, sawPhases, sawSpeed, sawRange,
+    // Visual variety — each pillar gets a randomly chosen cloud silhouette
+    // and a horizontal flip flag, so even pillars sharing a shape don't twin.
+    cloudShapeIdx: Math.floor(Math.random()*CLOUD_SHAPES.length),
+    cloudFlip: Math.random() < 0.5,
+    // Slight per-pillar scale jitter so cloud sizes don't lockstep
+    cloudScale: 0.92 + Math.random()*0.18
+  };
+}
+
+function ensurePillarsAhead(){
+  // Always have pillars rendered beyond the right edge.
+  // CRITICAL: new pillars get an ID from the monotonic counter, NOT pillars.length,
+  // because the array gets culled from the front. If we used array length, new
+  // pillars would spawn at the wrong world-x after any cull.
+  const cameraRight = camera.x + W;
+  while(pillars[pillars.length-1].x < cameraRight + PILLAR_PITCH*2){
+    pillars.push(makePillar(nextPillarId++));
+  }
+  // Cull old pillars to keep memory bounded.
+  // World-x is baked into each pillar at creation, so culling is safe — we just
+  // need to keep player.onPillarIdx and jumpFromIdx pointing at the right
+  // array slots.
+  while(pillars.length > 0 && pillars[0].x + PILLAR_W < camera.x - PILLAR_PITCH){
+    pillars.shift();
+    player.onPillarIdx--;
+    if(player.jumpFromIdx!=null) player.jumpFromIdx--;
+  }
+}
+
+// ── INPUT ──────────────────────────────────────────────────────────────────
+function handleJump(){
+  if(state==='menu' || state==='dead' || state==='paused') return;
+  if(state!=='playing') return; // can't jump mid-air or while dying
+  startJump();
+}
+
+function startJump(){
+  const fromIdx = player.onPillarIdx;
+  const toIdx = fromIdx + 1;
+  // The gap saws being judged are those AFTER fromIdx (i.e. pillars[fromIdx].sawPhases)
+
+  player.jumpFromIdx = fromIdx;
+  player.jumpStartT = performance.now()/1000;
+  state = 'jumping';
+  sJump();
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key===' '||e.code==='Space'||e.key==='ArrowUp'||e.key==='w'||e.key==='W'){
+    e.preventDefault();
+    handleJump();
+  }
+});
+
+const jumpBtn = document.getElementById('jumpBtn');
+function btnDown(e){
+  e.preventDefault();
+  jumpBtn.classList.add('pr');
+  handleJump();
+}
+function btnUp(e){ e.preventDefault(); jumpBtn.classList.remove('pr'); }
+jumpBtn.addEventListener('touchstart', btnDown, {passive:false});
+jumpBtn.addEventListener('touchend', btnUp, {passive:false});
+jumpBtn.addEventListener('touchcancel', btnUp, {passive:false});
+jumpBtn.addEventListener('mousedown', btnDown);
+jumpBtn.addEventListener('mouseup', btnUp);
+jumpBtn.addEventListener('mouseleave', btnUp);
+
+// Tap anywhere on canvas to jump (mobile-friendly second option)
+cv.addEventListener('touchstart', e=>{ e.preventDefault(); handleJump(); }, {passive:false});
+cv.addEventListener('mousedown', e=>{ handleJump(); });
+
+// ── PAUSE ──────────────────────────────────────────────────────────────────
+document.getElementById('pauseBtn').addEventListener('click', ()=>{
+  if(state==='menu' || state==='dead') return;
+  if(state==='paused'){ resumeGame(); return; }
+  pausedFromState = state;
+  state = 'paused';
+  showPause();
+});
+
+function resumeGame(){
+  state = pausedFromState || 'playing';
+  document.getElementById('ov').style.display='none';
+  document.body.classList.add('playing');
+  lastFrameTime = performance.now();
+}
+
+function showPause(){
+  document.body.classList.remove('playing');
+  const ov=document.getElementById('ov');
+  ov.innerHTML = `
+    <h1 class="cy">⏸ PAUSED</h1>
+    <div class="statRow">
+      <div class="col"><div class="v">${score}</div><div class="k">Score</div></div>
+      <div class="col"><div class="v">${bestScore}</div><div class="k">Best</div></div>
+    </div>
+    <button id="goBtn" style="background:linear-gradient(135deg,#0a6,#0d8);box-shadow:0 0 24px rgba(0,220,120,.5)">▶ RESUME</button>
+    <button id="restartBtn" style="margin-top:8px;padding:10px 24px;background:rgba(150,40,40,.3);color:#fcc;border:1.5px solid #c44;border-radius:10px;font-weight:900;font-size:13px;cursor:pointer;pointer-events:all;letter-spacing:2px">↻ RESTART</button>`;
+  ov.style.display='flex';
+  document.getElementById('goBtn').addEventListener('click', resumeGame);
+  document.getElementById('restartBtn').addEventListener('click', startGame);
+}
+
+// ── MUTE ───────────────────────────────────────────────────────────────────
+const muteBtn = document.getElementById('muteBtn');
+function refreshMuteIcon(){ muteBtn.textContent = muted ? '🔇' : '🔊'; }
+refreshMuteIcon();
+muteBtn.addEventListener('click', ()=>{
+  muted = !muted;
+  try { localStorage.setItem('pillarJumperMuted', muted ? '1' : '0'); } catch(e){}
+  refreshMuteIcon();
+});
+
+// ── FULLSCREEN ─────────────────────────────────────────────────────────────
+document.getElementById('fsBtn').addEventListener('click', ()=>{
+  const el=document.documentElement;
+  if(!document.fullscreenElement){
+    (el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||(()=>{})).call(el);
+  } else {
+    (document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen||(()=>{})).call(document);
+  }
+});
+
+// ── START / RESTART ────────────────────────────────────────────────────────
+function startGame(){
+  document.getElementById('ov').style.display='none';
+  document.body.classList.add('playing');
+  getAC(); // unlock audio on first interaction
+
+  pillars = [];
+  nextPillarId = 0;
+  for(let i=0;i<5;i++) pillars.push(makePillar(nextPillarId++));
+  // Make first few pillars roughly same height for a friendlier intro
+  pillars[0].topY = H*0.55;
+  pillars[1].topY = H*0.52;
+  pillars[2].topY = H*0.58;
+
+  player = {
+    worldX: pillars[0].x + PILLAR_W/2,
+    y: pillars[0].topY - PLAYER_H/2,
+    onPillarIdx: 0,
+    jumpFromIdx: null,
+    jumpStartT: 0,
+    vy: 0
+  };
+
+  camera = { x: player.worldX - W*PLAYER_ANCHOR_RATIO };
+  score = 0;
+  timerRemaining = BOMB_TIMER;
+  deathFlash = 0;
+  explosion = null;
+  bombPos = null;
+  state = 'playing';
+  lastFrameTime = performance.now();
+  updateHUD();
+}
+
+document.getElementById('goBtn').addEventListener('click', startGame);
+
+// ── UPDATE ─────────────────────────────────────────────────────────────────
+function update(dt){
+  if(state==='paused' || state==='menu' || state==='dead') return;
+
+  // Parallax clouds always animate
+  cloudOffset += dt * 8;
+  for(const cl of clouds){
+    cl.x -= cl.speed * dt * 60;
+    if(cl.x < -W*0.3) cl.x = W + Math.random()*W*0.3;
+  }
+
+  // Camera smoothly tracks player anchor
+  const targetCamX = player.worldX - W*PLAYER_ANCHOR_RATIO;
+  camera.x += (targetCamX - camera.x) * Math.min(1, dt*8);
+
+  ensurePillarsAhead();
+
+  if(state==='playing'){
+    // Standing on a pillar — count down bomb timer
+    timerRemaining -= dt;
+    if(timerRemaining <= 0){
+      timerRemaining = 0;
+      triggerBomb();
+    }
+    // Tick sound for last 3 seconds
+    const t = Math.ceil(timerRemaining);
+    if(!update._lastTick) update._lastTick = t;
+    if(t < update._lastTick && t<=3 && t>0){ sTick(); update._lastTick = t; }
+    if(t > update._lastTick) update._lastTick = t;
+  }
+  else if(state==='jumping'){
+    // Animate jump arc from pillar[fromIdx] top center to pillar[fromIdx+1] top center
+    const fromIdx = player.jumpFromIdx;
+    const toIdx = fromIdx + 1;
+    const pFrom = pillars[fromIdx];
+    const pTo   = pillars[toIdx];
+    if(!pFrom || !pTo){ // edge case
+      state = 'playing'; return;
+    }
+    const now = performance.now()/1000;
+    const t = (now - player.jumpStartT) / JUMP_DURATION;
+
+    const fromX = pFrom.x + PILLAR_W/2;
+    const toX   = pTo.x   + PILLAR_W/2;
+    const fromY = pFrom.topY - PLAYER_H/2;
+    const toY   = pTo.topY   - PLAYER_H/2;
+
+    if(t >= 1){
+      // Land
+      player.worldX = toX;
+      player.y = toY;
+      player.onPillarIdx = toIdx;
+      player.jumpFromIdx = null;
+      state = 'playing';
+      score++;
+      timerRemaining = BOMB_TIMER;
+      update._lastTick = Math.ceil(BOMB_TIMER);
+      sLand();
+      sScore();
+      updateHUD();
+    } else {
+      // Linear x, parabolic y. Parabola peaks at t=0.5.
+      player.worldX = fromX + (toX - fromX) * t;
+      const baseY = fromY + (toY - fromY) * t;
+      const arc = -JUMP_PEAK_H * 4 * t * (1-t); // negative = up (y grows down)
+      player.y = baseY + arc;
+
+      // Saw collision check during jump — only against saws in gap [fromIdx]
+      if(pFrom.sawCount > 0){
+        const sawTime = now;
+        for(let s=0; s<pFrom.sawCount; s++){
+          const sawPos = sawWorldPos(pFrom, s, sawTime);
+          const dx = player.worldX - sawPos.x;
+          const dy = player.y - sawPos.y;
+          const dist = Math.hypot(dx, dy);
+          if(dist < SAW_R + PLAYER_W*0.35){
+            triggerSawDeath();
+            return;
+          }
+        }
+      }
+    }
+  }
+  else if(state==='falling'){
+    // Player falls into the gap
+    player.vy += 1400 * dt;
+    player.y += player.vy * dt;
+    if(player.y > H + 100){
+      gameOver('saw');
+    }
+  }
+  else if(state==='bombing'){
+    // Bomb falls onto player
+    if(bombPos){
+      bombPos.vy += 1100 * dt;
+      bombPos.y += bombPos.vy * dt;
+      if(bombPos.y >= player.y){
+        // Boom — trigger cartoon explosion at impact point (screen coords)
+        explosion = {
+          x: player.worldX - camera.x,
+          y: player.y,
+          startMs: performance.now()
+        };
+        setTimeout(()=>gameOver('bomb'), 750);
+        state = 'dead';
+      }
+    }
+  }
+}
+
+function sawWorldPos(pillarFromGap, sawIdx, sawTime){
+  // Saw lives in the gap that begins at pillarFromGap.x + PILLAR_W
+  const gapStartX = pillarFromGap.x + PILLAR_W;
+  const sawCount = pillarFromGap.sawCount;
+  // If multiple saws, distribute them evenly across the gap
+  const slot = (sawIdx + 0.5) / sawCount;
+  const x = gapStartX + PILLAR_GAP * slot;
+
+  // Vertical range: from upper sky down to roughly where pillar tops sit,
+  // so saws oscillate through the gap players are jumping across.
+  const yTop = H*0.18;
+  const yBottom = H*(PILLAR_TOP_MAX_RATIO + 0.08) - SAW_R - 4;
+  const center = (yTop + yBottom)/2;
+  const amp = (yBottom - yTop)/2;
+
+  const phase = pillarFromGap.sawPhases[sawIdx];
+  const y = center + Math.sin(sawTime * pillarFromGap.sawSpeed + phase) * amp;
+  return {x, y};
+}
+
+function triggerSawDeath(){
+  state = 'falling';
+  player.vy = -120; // small kickback up
+  sSaw();
+  deathFlash = 1;
+}
+
+function triggerBomb(){
+  state = 'bombing';
+  bombPos = { x: player.worldX, y: -40, vy: 0 };
+  sBomb();
+}
+
+function gameOver(reason){
+  state = 'dead';
+  if(score > bestScore){
+    bestScore = score;
+    try{ localStorage.setItem('pillarJumperBest', String(bestScore)); }catch(e){}
+  }
+  showGameOver(reason);
+}
+
+function showGameOver(reason){
+  document.body.classList.remove('playing');
+  let icon, title, cls, sub;
+  if(reason==='saw'){ icon='🩸'; title='SLICED!'; cls='cr'; sub='A saw blade got you. Watch the saw movement to time your jump.'; }
+  else if(reason==='bomb'){ icon='💥'; title='BOMBED!'; cls='cy'; sub='You stood still too long. Keep moving!'; }
+  else { icon='💀'; title='GAME OVER'; cls='cs'; sub=''; }
+
+  const ov=document.getElementById('ov');
+  const newBest = score === bestScore && score > 0;
+  ov.innerHTML = `
+    <div id="resIcon">${icon}</div>
+    <h1 class="${cls}">${title}</h1>
+    <div class="sub">${sub}</div>
+    <div class="statRow">
+      <div class="col"><div class="v">${score}</div><div class="k">Pillars</div></div>
+      <div class="col"><div class="v" style="color:${newBest?'#ffdd00':'#fff'}">${bestScore}${newBest?' ⭐':''}</div><div class="k">Best</div></div>
+    </div>
+    ${newBest?'<div class="sub" style="color:#ffdd00;font-weight:900;letter-spacing:2px">NEW RECORD!</div>':''}
+    <button id="goBtn">↻ PLAY AGAIN</button>`;
+  ov.style.display='flex';
+  document.getElementById('goBtn').addEventListener('click', startGame);
+}
+
+function updateHUD(){
+  document.getElementById('scoreV').textContent = score;
+  const tv = document.getElementById('timerV');
+  const tp = document.getElementById('timerPill');
+  tv.textContent = timerRemaining.toFixed(1);
+  tp.classList.remove('warn','crit');
+  if(timerRemaining <= 3) tp.classList.add('crit');
+  else if(timerRemaining <= 6) tp.classList.add('warn');
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function render(){
+  // Sky gradient — bright blue at top, deeper sky toward the bottom so the
+  // pillars feel like they're floating high above the ground.
+  const g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0, '#7ec8ff');
+  g.addColorStop(0.45, '#a8d6f5');
+  g.addColorStop(0.85, '#5a8ec0');
+  g.addColorStop(1, '#3a6aa0');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,W,H);
+
+  // Far sun
+  const sunX = W*0.78, sunY = H*0.22;
+  const sg = ctx.createRadialGradient(sunX,sunY,5,sunX,sunY,140);
+  sg.addColorStop(0,'rgba(255,250,200,0.95)');
+  sg.addColorStop(0.4,'rgba(255,230,160,0.4)');
+  sg.addColorStop(1,'rgba(255,220,150,0)');
+  ctx.fillStyle=sg;
+  ctx.beginPath();ctx.arc(sunX,sunY,140,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,250,220,0.95)';
+  ctx.beginPath();ctx.arc(sunX,sunY,38,0,Math.PI*2);ctx.fill();
+
+  // Parallax background clouds (far, slow)
+  for(const cl of clouds){
+    drawCloud(cl.x, H * cl.yRatio, cl.scale);
+  }
+
+  // World objects — pillars, saws — only when game initialized
+  if(pillars && camera){
+    // Pillars
+    for(const p of pillars){
+      drawPillar(p);
+    }
+
+    // Saws (drawn over pillars so they read clearly)
+    const sawTime = performance.now()/1000;
+    for(const p of pillars){
+      if(p.sawCount > 0){
+        for(let s=0;s<p.sawCount;s++){
+          const pos = sawWorldPos(p, s, sawTime);
+          const sx = pos.x - camera.x;
+          if(sx < -60 || sx > W+60) continue;
+          drawSaw(sx, pos.y, sawTime);
+        }
+      }
+    }
+  }
+
+  // Player
+  if(state !== 'menu' && player && camera){
+    const px = player.worldX - camera.x;
+    drawPlayer(px, player.y, state);
+  }
+
+  // Bomb
+  if(state === 'bombing' && bombPos){
+    const bx = bombPos.x - camera.x;
+    drawBomb(bx, bombPos.y);
+  }
+
+  // Death flash overlay
+  if(deathFlash > 0){
+    ctx.fillStyle = `rgba(255,80,40,${deathFlash*0.5})`;
+    ctx.fillRect(0,0,W,H);
+    deathFlash *= 0.88;
+    if(deathFlash < 0.02) deathFlash = 0;
+  }
+
+  // Vignette
+  const vg = ctx.createRadialGradient(W/2,H/2,W*0.4,W/2,H/2,W*0.85);
+  vg.addColorStop(0,'rgba(0,0,0,0)');
+  vg.addColorStop(1,'rgba(0,0,30,0.25)');
+  ctx.fillStyle=vg;
+  ctx.fillRect(0,0,W,H);
+
+  // Cartoon explosion — drawn last so it covers everything
+  if(explosion){
+    drawExplosion(explosion);
+  }
+}
+
+// Draw a jagged star with N spikes — used for the cartoon bloom layers.
+// seed is used to deterministically vary each spike length so different layers
+// have visually distinct silhouettes (not just scaled copies of one shape).
+function jaggedStarPath(cx, cy, radius, spikes, innerRatio, seed){
+  ctx.beginPath();
+  const total = spikes * 2;
+  for(let i=0; i<total; i++){
+    const a = (i / total) * Math.PI * 2 - Math.PI/2;
+    const isPeak = i % 2 === 0;
+    // Slight per-spike variation for hand-drawn feel
+    const wob = 1 + Math.sin(i*1.7 + seed)*0.08;
+    const r = (isPeak ? radius : radius*innerRatio) * wob;
+    const x = cx + Math.cos(a)*r;
+    const y = cy + Math.sin(a)*r;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+}
+
+function drawExplosion(ex){
+  const elapsed = (performance.now() - ex.startMs) / 1000; // seconds
+
+  // Screen diagonal — target size for the bloom to comfortably cover everything
+  const target = Math.hypot(W, H) * 1.1;
+
+  // Three layers. Each has: delay (when it starts), grow duration, color, fade.
+  // Stagger creates the "bloom builds outward" feel.
+  const layers = [
+    // Outer red — starts immediately, biggest
+    { delay: 0.00, grow: 0.45, hold: 0.10, fade: 0.20,
+      color: [220, 40, 20], spikes: 16, inner: 0.62, seed: 0.0, maxScale: 1.00 },
+    // Middle orange — slight delay, slightly smaller than red so red rim shows
+    { delay: 0.06, grow: 0.40, hold: 0.10, fade: 0.20,
+      color: [255, 140, 30], spikes: 18, inner: 0.66, seed: 1.3, maxScale: 0.82 },
+    // Inner yellow-white core — biggest delay, smallest, hottest
+    { delay: 0.12, grow: 0.32, hold: 0.10, fade: 0.18,
+      color: [255, 240, 160], spikes: 20, inner: 0.70, seed: 2.7, maxScale: 0.58 },
+  ];
+
+  for(const L of layers){
+    const t = elapsed - L.delay;
+    if(t < 0) continue;
+
+    let scale, alpha;
+    if(t < L.grow){
+      // Grow phase — easeOutQuad gives that punchy "snap to full size"
+      const p = t / L.grow;
+      scale = 1 - (1-p)*(1-p);
+      alpha = 1.0;
+    } else if(t < L.grow + L.hold){
+      // Hold at full
+      scale = 1.0;
+      alpha = 1.0;
+    } else if(t < L.grow + L.hold + L.fade){
+      // Fade out
+      scale = 1.0;
+      alpha = 1 - (t - L.grow - L.hold) / L.fade;
+    } else {
+      continue; // layer done
+    }
+
+    const radius = target * L.maxScale * scale;
+    const [r,g,b] = L.color;
+
+    ctx.save();
+    // Soft outer glow via shadow
+    ctx.shadowColor = `rgba(${r},${g},${b},${alpha*0.9})`;
+    ctx.shadowBlur = 30;
+    ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+    jaggedStarPath(ex.x, ex.y, radius, L.spikes, L.inner, L.seed);
+    ctx.fill();
+    // Dark cartoon outline on outer layer for definition
+    if(L === layers[0]){
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = `rgba(80,10,0,${alpha*0.8})`;
+      ctx.lineWidth = 4;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+function drawCloud(x,y,sc){
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.scale(sc,sc);
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.beginPath();
+  ctx.arc(0,0,28,0,Math.PI*2);
+  ctx.arc(26,4,22,0,Math.PI*2);
+  ctx.arc(-26,4,22,0,Math.PI*2);
+  ctx.arc(12,-12,20,0,Math.PI*2);
+  ctx.arc(-14,-10,18,0,Math.PI*2);
+  ctx.fill();
+  // Soft underside
+  ctx.fillStyle = 'rgba(200,220,240,0.4)';
+  ctx.beginPath();
+  ctx.ellipse(0,14,40,8,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawPillar(p){
+  const sx = p.x - camera.x;
+  if(sx < -PILLAR_W-120 || sx > W+120) return;
+
+  const topY = p.topY;
+  const pillarLen = H * PILLAR_LENGTH_RATIO;
+  const baseY = topY + pillarLen;
+  const w = PILLAR_W;
+
+  // The cloud sits around the pillar's base. We draw it AFTER the pillar body
+  // but BEFORE the very bottom, so the cloud overlaps the lower portion of the
+  // pillar (hiding its bottom edge) and makes it look like the pillar is
+  // emerging from the cloud rather than dangling above empty sky.
+
+  // Pillar body — golden yellow with shading
+  const grad = ctx.createLinearGradient(sx,0,sx+w,0);
+  grad.addColorStop(0, '#d99a1a');
+  grad.addColorStop(0.35,'#ffcc44');
+  grad.addColorStop(0.65,'#ffdb66');
+  grad.addColorStop(1, '#b87a14');
+  ctx.fillStyle = grad;
+  ctx.fillRect(sx, topY, w, pillarLen);
+
+  // Top cap — slightly darker rim
+  ctx.fillStyle = '#c89020';
+  ctx.fillRect(sx, topY, w, 6);
+  // Top highlight
+  ctx.fillStyle = '#ffe48a';
+  ctx.fillRect(sx+2, topY+1, w-4, 3);
+  // Top face plate
+  ctx.fillStyle = '#ffcc44';
+  ctx.fillRect(sx+3, topY+6, w-6, 5);
+
+  // Vertical stone joints — only above the cloud line (don't waste pixels under cloud)
+  const cloudLine = baseY - H*0.06; // cloud overlaps roughly this far up the pillar
+  ctx.fillStyle = 'rgba(140,80,10,0.28)';
+  for(let jy = topY + 30; jy < cloudLine; jy += 38){
+    ctx.fillRect(sx+4, jy, w-8, 2);
+  }
+  // Side shadow
+  ctx.fillStyle = 'rgba(80,40,5,0.22)';
+  ctx.fillRect(sx + w - 12, topY+6, 12, cloudLine - topY - 6);
+  // Left highlight
+  ctx.fillStyle = 'rgba(255,230,150,0.25)';
+  ctx.fillRect(sx, topY+6, 6, cloudLine - topY - 6);
+
+  // Cloud at base — drawn on top of the pillar's lower portion
+  drawPillarCloud(sx + w/2, baseY, p);
+}
+
+// Draw the cloud that the pillar sits on. Anchored at the pillar's base center.
+// Uses the pillar's assigned shape, flip, and scale for visual variety.
+function drawPillarCloud(cx, baseY, p){
+  const shape = CLOUD_SHAPES[p.cloudShapeIdx];
+  const flip = p.cloudFlip ? -1 : 1;
+  const scale = (PILLAR_W * 1.4 / 100) * p.cloudScale; // calibrated so cloud is ~1.7x pillar width
+  // Cloud center slightly above the pillar base so the pillar appears to plunge into it
+  const cy = baseY - 4;
+
+  ctx.save();
+
+  // Soft underside shadow — sells the volume
+  ctx.fillStyle = 'rgba(80,110,150,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 14*scale, 80*scale, 12*scale, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Main cloud body — overlapping circles
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  for(const blob of shape){
+    const bx = cx + blob.dx * flip * scale;
+    const by = cy + blob.dy * scale;
+    const br = blob.r * scale;
+    ctx.moveTo(bx + br, by);
+    ctx.arc(bx, by, br, 0, Math.PI*2);
+  }
+  ctx.fill();
+
+  // Underside shading — second pass with darker tone clipped to bottom half
+  ctx.fillStyle = 'rgba(180,200,225,0.55)';
+  ctx.beginPath();
+  for(const blob of shape){
+    const bx = cx + blob.dx * flip * scale;
+    const by = cy + blob.dy * scale + blob.r * scale * 0.35;
+    const br = blob.r * scale * 0.85;
+    ctx.moveTo(bx + br, by);
+    ctx.arc(bx, by, br, 0, Math.PI*0.95, false);
+  }
+  ctx.fill();
+
+  // Subtle top highlights on each blob
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  for(const blob of shape){
+    const bx = cx + blob.dx * flip * scale - blob.r * scale * 0.25;
+    const by = cy + blob.dy * scale - blob.r * scale * 0.35;
+    const br = blob.r * scale * 0.35;
+    ctx.beginPath();
+    ctx.arc(bx, by, br, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawSaw(sx, sy, t){
+  ctx.save();
+  ctx.translate(sx, sy);
+  const spin = t * 14;
+  ctx.rotate(spin);
+
+  // Outer teeth — 12-pointed star via polar polygon
+  const r = SAW_R;
+  const teeth = 14;
+  ctx.beginPath();
+  for(let i=0;i<teeth*2;i++){
+    const a = (i/(teeth*2))*Math.PI*2;
+    const rr = i%2===0 ? r : r*0.78;
+    const x = Math.cos(a)*rr, y = Math.sin(a)*rr;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+  // Metal gradient
+  const mg = ctx.createRadialGradient(-r*0.3,-r*0.3,2,0,0,r);
+  mg.addColorStop(0,'#f0f0f0');
+  mg.addColorStop(0.5,'#b8b8c0');
+  mg.addColorStop(1,'#606068');
+  ctx.fillStyle = mg;
+  ctx.fill();
+  ctx.strokeStyle = '#2a2a30';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Inner ring
+  ctx.beginPath();ctx.arc(0,0,r*0.55,0,Math.PI*2);
+  ctx.fillStyle = '#8a8a92';
+  ctx.fill();
+  ctx.strokeStyle = '#3a3a42';ctx.lineWidth = 1;ctx.stroke();
+
+  // Center bolt
+  ctx.beginPath();ctx.arc(0,0,r*0.18,0,Math.PI*2);
+  ctx.fillStyle = '#2a2a30';ctx.fill();
+
+  // Three spokes
+  ctx.strokeStyle = '#4a4a52';
+  ctx.lineWidth = 2;
+  for(let s=0;s<3;s++){
+    const a = s*Math.PI*2/3;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a)*r*0.22, Math.sin(a)*r*0.22);
+    ctx.lineTo(Math.cos(a)*r*0.5,  Math.sin(a)*r*0.5);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  // Motion blur ring (subtle red tint to read "danger")
+  ctx.save();
+  ctx.translate(sx,sy);
+  ctx.strokeStyle = 'rgba(255,60,60,0.18)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();ctx.arc(0,0,SAW_R+2,0,Math.PI*2);ctx.stroke();
+  ctx.restore();
+}
+
+function drawPlayer(x, y, st){
+  ctx.save();
+  ctx.translate(x, y);
+
+  // Shadow on pillar below (only when on pillar or jumping low)
+  if(st==='playing' || st==='jumping'){
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(0, PLAYER_H/2 + 4, PLAYER_W*0.45, 4, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Tilt slightly while jumping based on arc phase
+  let tilt = 0;
+  if(st==='jumping' && player.jumpFromIdx != null){
+    const now = performance.now()/1000;
+    const t = (now - player.jumpStartT) / JUMP_DURATION;
+    tilt = (t - 0.5) * 0.7; // lean forward through arc
+  } else if(st==='falling'){
+    tilt = Math.PI/2 + Math.sin(performance.now()/100)*0.4;
+  }
+  ctx.rotate(tilt);
+
+  const w = PLAYER_W, h = PLAYER_H;
+
+  // Legs — blue jeans
+  ctx.fillStyle = '#2a4a8a';
+  ctx.fillRect(-w*0.32, h*0.08, w*0.26, h*0.42);
+  ctx.fillRect( w*0.06, h*0.08, w*0.26, h*0.42);
+  // Jeans shading
+  ctx.fillStyle = '#1a3870';
+  ctx.fillRect(-w*0.32, h*0.08, 3, h*0.42);
+  ctx.fillRect( w*0.06, h*0.08, 3, h*0.42);
+  // Shoes
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(-w*0.36, h*0.46, w*0.32, 6);
+  ctx.fillRect( w*0.04, h*0.46, w*0.32, 6);
+
+  // Torso — red t-shirt
+  ctx.fillStyle = '#d83020';
+  ctx.fillRect(-w*0.36, -h*0.12, w*0.72, h*0.32);
+  // Shirt shading
+  ctx.fillStyle = '#a82010';
+  ctx.fillRect(w*0.24, -h*0.12, w*0.12, h*0.32);
+  // Shirt highlight
+  ctx.fillStyle = '#ec4030';
+  ctx.fillRect(-w*0.36, -h*0.12, 4, h*0.32);
+
+  // Arms — tan skin
+  ctx.fillStyle = '#e8b890';
+  // Determine arm pose based on state
+  let armSwing = 0;
+  if(st==='jumping'){
+    const now = performance.now()/1000;
+    const t = (now - player.jumpStartT) / JUMP_DURATION;
+    armSwing = Math.sin(t*Math.PI) * h*0.12; // arms swing up at peak
+  }
+  ctx.fillRect(-w*0.46, -h*0.10 - armSwing, w*0.12, h*0.28);
+  ctx.fillRect( w*0.34, -h*0.10 - armSwing, w*0.12, h*0.28);
+
+  // Head — tan skin
+  ctx.fillStyle = '#f0c8a0';
+  ctx.beginPath();
+  ctx.arc(0, -h*0.30, h*0.18, 0, Math.PI*2);
+  ctx.fill();
+  // Hair (simple brown cap)
+  ctx.fillStyle = '#4a2c14';
+  ctx.beginPath();
+  ctx.arc(0, -h*0.34, h*0.18, Math.PI, Math.PI*2);
+  ctx.fill();
+  ctx.fillRect(-h*0.18, -h*0.36, h*0.36, h*0.04);
+  // Eyes
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(-h*0.06, -h*0.30, 2.5, 3);
+  ctx.fillRect( h*0.04, -h*0.30, 2.5, 3);
+  // Mouth — simple line, smile when playing, neutral when jumping
+  ctx.strokeStyle = '#6a3010';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  if(st==='playing'){
+    ctx.arc(0, -h*0.22, 3, 0.2*Math.PI, 0.8*Math.PI);
+  } else if(st==='falling'){
+    ctx.arc(0, -h*0.20, 3, 1.2*Math.PI, 1.8*Math.PI); // frown
+  } else {
+    ctx.moveTo(-3, -h*0.22); ctx.lineTo(3, -h*0.22);
+  }
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawBomb(x,y){
+  ctx.save();
+  ctx.translate(x,y);
+  // Body
+  ctx.fillStyle = '#1a1a1a';
+  ctx.beginPath();ctx.arc(0,0,18,0,Math.PI*2);ctx.fill();
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.beginPath();ctx.arc(-6,-6,5,0,Math.PI*2);ctx.fill();
+  // Fuse
+  ctx.strokeStyle = '#6a4020';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0,-18);
+  ctx.quadraticCurveTo(8,-26,5,-32);
+  ctx.stroke();
+  // Spark
+  const sparkR = 4 + Math.sin(performance.now()/40)*1.5;
+  ctx.fillStyle = '#ffdd33';
+  ctx.shadowColor = '#ff7700';
+  ctx.shadowBlur = 14;
+  ctx.beginPath();ctx.arc(5,-32,sparkR,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+// ── MAIN LOOP ──────────────────────────────────────────────────────────────
+function loop(){
+  requestAnimationFrame(loop);
+  const now = performance.now();
+  let dt = (now - (lastFrameTime||now))/1000;
+  lastFrameTime = now;
+  if(dt > 0.1) dt = 0.1; // clamp on tab-switch
+  if(state !== 'menu') update(dt);
+  render();
+  if(state==='playing' || state==='jumping') updateHUD();
+}
+
+// Surface menu on first load (must be set BEFORE loop starts)
+state = 'menu';
+loop();
+</script>
+</body>
+</html>
