@@ -189,6 +189,14 @@ main {
   width:100%; height:100%;
   display:block;
 }
+/* Pillar Jump — sky blue */
+.thumb-pillar-jump {
+  background: #3a6aa0;
+}
+.thumb-pillar-jump canvas {
+  width:100%; height:100%;
+  display:block;
+}
 /* coming-soon card style */
 .card-coming {
   opacity: 0.45;
@@ -278,6 +286,11 @@ main {
 .card-doodle-pad {
   --card-color: #ff2d92;
   --card-glow: rgba(255,45,146,0.35);
+}
+/* ── PILLAR JUMP SPECIFIC ── */
+.card-pillar-jump {
+  --card-color: #5cc8ff;
+  --card-glow: rgba(92,200,255,0.35);
 }
 /* ── FOOTER ── */
 footer {
@@ -546,16 +559,18 @@ footer strong {
 
 <div class="marquee-wrap">
   <div class="marquee-inner">
-    <span>NEW!</span> DOODLE PAD IS LIVE &nbsp;·&nbsp;
-    <span>🎨</span> NEON BRUSH GLOW &nbsp;·&nbsp;
+    <span>NEW!</span> PILLAR JUMP IS LIVE &nbsp;·&nbsp;
+    <span>☁️</span> HOP THE PILLARS &nbsp;·&nbsp;
+    <span>🎨</span> DOODLE PAD &nbsp;·&nbsp;
     <span>🐾</span> POOPIE STOMPER &nbsp;·&nbsp;
     <span>🏜️</span> CANYON RACER &nbsp;·&nbsp;
     <span>🛻</span> MONSTER TRUCK ARENA &nbsp;·&nbsp;
     <span>🚀</span> SPACE BATTLE MODE &nbsp;·&nbsp;
     <span>💀</span> 3 DIFFICULTY LEVELS &nbsp;·&nbsp;
     <span>🔥</span> BOOST YOUR WAY TO VICTORY &nbsp;·&nbsp;
-    <span>NEW!</span> DOODLE PAD IS LIVE &nbsp;·&nbsp;
-    <span>🎨</span> NEON BRUSH GLOW &nbsp;·&nbsp;
+    <span>NEW!</span> PILLAR JUMP IS LIVE &nbsp;·&nbsp;
+    <span>☁️</span> HOP THE PILLARS &nbsp;·&nbsp;
+    <span>🎨</span> DOODLE PAD &nbsp;·&nbsp;
     <span>🐾</span> POOPIE STOMPER &nbsp;·&nbsp;
     <span>🏜️</span> CANYON RACER &nbsp;·&nbsp;
     <span>🛻</span> MONSTER TRUCK ARENA &nbsp;·&nbsp;
@@ -654,6 +669,23 @@ footer strong {
       </div>
     </a>
 
+    <!-- PILLAR JUMP -->
+    <a href="pillar-jump.html" class="game-card card-pillar-jump">
+      <div class="card-thumb thumb-pillar-jump">
+        <canvas id="pillarJumpPreview"></canvas>
+      </div>
+      <div class="card-play">▶ PLAY</div>
+      <div class="card-info">
+        <div class="card-title" style="color:#5cc8ff;">☁️ PILLAR JUMP</div>
+        <div class="card-desc">Hop pillar to pillar over the open sky. Dodge spinning saws and don't linger — bombs drop after 10 seconds.</div>
+        <div class="card-tags">
+          <span class="tag" style="color:#5cc8ff;border-color:#5cc8ff44;background:rgba(92,200,255,0.08);">Arcade</span>
+          <span class="tag" style="color:#ffdd00;border-color:#ffdd0044;background:rgba(255,221,0,0.08);">Reflex</span>
+          <span class="tag" style="color:#ff6b35;border-color:#ff6b3544;background:rgba(255,107,53,0.08);">One-Tap</span>
+        </div>
+      </div>
+    </a>
+
     <!-- COMING SOON SLOT -->
     <div class="game-card card-coming">
       <div class="card-thumb thumb-coming">
@@ -661,7 +693,7 @@ footer strong {
         <div class="coming-label">Coming Soon</div>
       </div>
       <div class="card-info">
-        <div class="card-title" style="color:var(--subtext);">??? GAME 5</div>
+        <div class="card-title" style="color:var(--subtext);">??? GAME 6</div>
         <div class="card-desc">Something epic is being designed...</div>
         <div class="card-tags">
           <span class="tag" style="color:var(--subtext);border-color:rgba(136,136,170,0.2);background:rgba(136,136,170,0.05);">Mystery</span>
@@ -677,13 +709,17 @@ footer strong {
 </footer>
 
 <script>
-// ── ANIMATED PREVIEW: detailed dirt arena + full-fidelity trucks ────────────
+// ── STATIC PREVIEW: detailed dirt arena + full-fidelity trucks ──────────────
+// Renders once at page load; redraws only on resize. No animation loop.
 (function() {
   const canvas = document.getElementById('previewCanvas');
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
   let dirtGrad = null;
-  let angle1 = 0, angle2 = Math.PI;
+  // Fixed angles: trucks placed for a balanced composition — player at lower-left
+  // chasing AI at upper-right, both visible with clearance from edges.
+  const angle1 = Math.PI * 0.75;   // ~135° (lower-left of ellipse)
+  const angle2 = Math.PI * 1.75;   // ~315° (upper-right) — 180° opposed
 
   function resize() {
     const rect = canvas.getBoundingClientRect();
@@ -693,7 +729,6 @@ footer strong {
     dirtGrad = null; // invalidate gradient on resize
   }
   resize();
-  new ResizeObserver(resize).observe(canvas);
 
   // Full player truck draw — scaled by `s` (scale factor vs game's hw=22,hh=30)
   function drawPlayerTruck(s) {
@@ -869,21 +904,21 @@ footer strong {
     ctx.save(); ctx.translate(t2x, t2y); ctx.rotate(t2a);
     drawAITruck(s);
     ctx.restore();
-
-    angle1 += 0.016;
-    angle2 += 0.016;
-
-    requestAnimationFrame(draw);
   }
+  // Hook resize observer to redraw the static frame on viewport changes
+  new ResizeObserver(() => { resize(); draw(); }).observe(canvas);
   draw();
 })();
 
-// ── ANIMATED PREVIEW: Canyon Racer Lego-style pseudo-3D road ───────────────
+// ── STATIC PREVIEW: Canyon Racer Lego-style pseudo-3D road ─────────────────
+// Renders once with a fixed `t` chosen for an interesting curve.
 (function() {
   const canvas = document.getElementById('canyonPreview');
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
-  let t = 0;
+  // Fixed t — picked to put the road curve in a visually interesting position
+  // (gentle right bend, not straight, not maxed out)
+  const t = 80;
 
   // Try to load sprite — falls back to canvas-drawn car
   let playerSprite = null;
@@ -898,7 +933,6 @@ footer strong {
     ctx.scale(devicePixelRatio, devicePixelRatio);
   }
   resize();
-  new ResizeObserver(resize).observe(canvas);
 
   // ── Lego helpers (simplified from game) ──
   function legoBrick(x,y,w,h,col){
@@ -1177,33 +1211,26 @@ footer strong {
 
       ctx.restore();
     }
-
-    t++;
-    requestAnimationFrame(draw);
   }
+  new ResizeObserver(() => { resize(); draw(); }).observe(canvas);
   draw();
 })();
 
-// ── ANIMATED PREVIEW: Poopie Stomper — DOM mirror of the game (1:1 styles) ──
-// The actual game styles are cloned in CSS as `.ps-*` selectors. This script
-// just positions the dog, spawns poops, and triggers squish/sparkle effects on
-// arrival. Everything visual matches the game source.
+// ── STATIC PREVIEW: Poopie Stomper — DOM mirror, frozen mid-hop ────────────
+// One-shot scene: 4 poops placed deterministically, dog caught mid-hop arc
+// between two of them. No animation loop, no respawn.
 (function() {
   const scene = document.querySelector('.poopie-scene');
   if (!scene) return;
   const dog = scene.querySelector('.ps-dog');
 
-  // The game uses a 120x110 dog and 60x60 poops. We render at native size and
-  // scale the entire scene to fit the card so proportions stay correct.
-  // Native scene coords — chosen to give the dog room to roam without crowding.
   const SCENE_W = 480;
   const SCENE_H = 320;
   const DOG_W = 120, DOG_H = 110;
   const POOP_W = 60;
-  const FOOT_OFFSET_X = DOG_W / 2;     // dog x is top-left, foot is centered
-  const FOOT_OFFSET_Y = DOG_H - 20;    // matches game's HIT_RADIUS calculation
+  const FOOT_OFFSET_X = DOG_W / 2;
+  const FOOT_OFFSET_Y = DOG_H - 20;
 
-  // Set up an inner stage we can scale uniformly.
   const stage = document.createElement('div');
   stage.style.cssText = `
     position: absolute;
@@ -1212,7 +1239,6 @@ footer strong {
     height: ${SCENE_H}px;
     transform-origin: top left;
   `;
-  // Move existing children (sun, dog) into the stage
   const sun = scene.querySelector('.ps-sun');
   scene.appendChild(stage);
   stage.appendChild(sun);
@@ -1223,7 +1249,6 @@ footer strong {
     const sx = rect.width / SCENE_W;
     const sy = rect.height / SCENE_H;
     const s = Math.min(sx, sy);
-    // Center the stage if there's slack on either axis
     const offX = (rect.width - SCENE_W * s) / 2;
     const offY = (rect.height - SCENE_H * s) / 2;
     stage.style.transform = `translate(${offX}px, ${offY}px) scale(${s})`;
@@ -1231,153 +1256,54 @@ footer strong {
   fit();
   new ResizeObserver(fit).observe(scene);
 
-  // Position the sun in stage coordinates (override the CSS top/right)
   sun.style.top = '20px';
   sun.style.right = '24px';
   sun.style.width = '50px';
   sun.style.height = '50px';
+  sun.style.animation = 'none';
 
-  // Scene state
-  let dogX = 30, dogY = SCENE_H - DOG_H - 20;
-  let poops = [];
-  let targetIdx = 0;
-  let prevX = dogX, prevY = dogY, nextX = dogX, nextY = dogY;
-  let segT = 0;
-  const SEG_DURATION = 1.4; // seconds per hop
-  let lastTime = 0;
-  let respawning = false;
+  // Freeze the dog's tail wag — fully static preview should have no motion.
+  // The CSS selector .ps-dog .ps-tail has an infinite animation; we cancel it
+  // on the actual tail element after the DOM has been moved into the stage.
+  const tail = dog.querySelector('.ps-tail');
+  if (tail) tail.style.animation = 'none';
 
-  function setDogPos(x, y, hop) {
-    dogX = x; dogY = y;
-    dog.style.left = x + 'px';
-    dog.style.top = (y - hop) + 'px';
-  }
+  // Deterministic poop placement — 4 spread across the scene, none overlapping
+  // and clear of the sun corner and dog landing spot.
+  const poopPositions = [
+    { x: 60,  y: 200 },
+    { x: 200, y: 130 },
+    { x: 330, y: 220 },
+    { x: 380, y: 95  },
+  ];
+  poopPositions.forEach((p, i) => {
+    const el = document.createElement('div');
+    el.className = 'ps-poop';
+    el.textContent = '💩';
+    el.style.left = p.x + 'px';
+    el.style.top = p.y + 'px';
+    // Disable the float animation so the preview is fully static
+    el.style.animation = 'none';
+    stage.appendChild(el);
+  });
 
-  function spawnPoops() {
-    // Remove any existing
-    stage.querySelectorAll('.ps-poop').forEach(p => p.remove());
-    poops = [];
-    // 4 poops spread across the scene, kept clear of the dog and the sun corner
-    const count = 4;
-    const margin = 30;
-    const minDist = 100;
-    const tries = 60;
-    while (poops.length < count) {
-      let placed = false;
-      for (let i = 0; i < tries && !placed; i++) {
-        const x = margin + Math.random() * (SCENE_W - margin * 2 - POOP_W);
-        const y = 70 + Math.random() * (SCENE_H - 70 - POOP_W - 30);
-        // Avoid the sun area (top-right ~80x80)
-        if (x > SCENE_W - 100 && y < 90) continue;
-        // Avoid current dog foot
-        const dogFootX = dogX + FOOT_OFFSET_X;
-        const dogFootY = dogY + FOOT_OFFSET_Y;
-        if (Math.hypot(x + POOP_W / 2 - dogFootX, y + POOP_W / 2 - dogFootY) < 90) continue;
-        let ok = true;
-        for (const p of poops) {
-          if (Math.hypot(x - p.x, y - p.y) < minDist) { ok = false; break; }
-        }
-        if (!ok) continue;
-        const el = document.createElement('div');
-        el.className = 'ps-poop';
-        el.textContent = '💩';
-        el.style.left = x + 'px';
-        el.style.top = y + 'px';
-        el.style.animationDelay = (Math.random() * 2) + 's';
-        stage.appendChild(el);
-        poops.push({ x, y, el, alive: true });
-        placed = true;
-      }
-      if (!placed) break;
-    }
-    targetIdx = 0;
-    startSegment();
-  }
-
-  function startSegment() {
-    prevX = dogX; prevY = dogY;
-    const p = poops[targetIdx];
-    if (!p) return;
-    // Aim so the dog's foot lands on the poop center
-    nextX = p.x + POOP_W / 2 - FOOT_OFFSET_X;
-    nextY = p.y + POOP_W / 2 - FOOT_OFFSET_Y;
-    segT = 0;
-  }
-
-  function squishCurrent() {
-    const p = poops[targetIdx];
-    if (!p || !p.alive) return;
-    p.alive = false;
-    p.el.classList.add('squish');
-    setTimeout(() => p.el.remove(), 500);
-    // Wiggle the dog
-    dog.classList.remove('wiggle');
-    void dog.offsetWidth; // restart animation
-    dog.classList.add('wiggle');
-    setTimeout(() => dog.classList.remove('wiggle'), 500);
-    // Sparkles centered on poop
-    const cx = p.x + POOP_W / 2;
-    const cy = p.y + POOP_W / 2;
-    const glyphs = ['✨', '⭐', '💫', '🌟'];
-    for (let i = 0; i < 4; i++) {
-      const s = document.createElement('div');
-      s.className = 'ps-sparkle';
-      s.textContent = glyphs[Math.floor(Math.random() * glyphs.length)];
-      s.style.left = (cx - 11) + 'px';
-      s.style.top = (cy - 11) + 'px';
-      s.style.setProperty('--dx', (Math.random() * 80 - 40) + 'px');
-      stage.appendChild(s);
-      setTimeout(() => s.remove(), 800);
-    }
-  }
-
-  function nextTarget() {
-    // Find next alive poop, or trigger respawn
-    for (let i = 1; i <= poops.length; i++) {
-      const idx = (targetIdx + i) % poops.length;
-      if (poops[idx].alive) {
-        targetIdx = idx;
-        startSegment();
-        return;
-      }
-    }
-    // None alive — respawn after a beat
-    if (!respawning) {
-      respawning = true;
-      setTimeout(() => {
-        respawning = false;
-        spawnPoops();
-      }, 700);
-    }
-  }
-
-  function frame(time) {
-    if (!lastTime) lastTime = time;
-    const dt = Math.min(0.05, (time - lastTime) / 1000);
-    lastTime = time;
-
-    if (!respawning && poops.length && poops[targetIdx] && poops[targetIdx].alive) {
-      segT += dt / SEG_DURATION;
-      if (segT > 1) segT = 1;
-      const x = prevX + (nextX - prevX) * segT;
-      const y = prevY + (nextY - prevY) * segT;
-      const hop = Math.sin(segT * Math.PI) * 30; // arc
-      setDogPos(x, y, hop);
-      if (segT >= 1) {
-        squishCurrent();
-        // brief settle, then move on
-        setTimeout(nextTarget, 220);
-      }
-    }
-
-    requestAnimationFrame(frame);
-  }
-
-  spawnPoops();
-  requestAnimationFrame(frame);
+  // Dog positioned mid-hop arc between poop 0 and poop 1.
+  // segT = 0.5 (peak of arc), hop = sin(0.5π)*30 = 30 pixels of lift
+  const p0 = poopPositions[0];
+  const p1 = poopPositions[1];
+  const segT = 0.5;
+  const startX = p0.x + POOP_W/2 - FOOT_OFFSET_X;
+  const startY = p0.y + POOP_W/2 - FOOT_OFFSET_Y;
+  const endX   = p1.x + POOP_W/2 - FOOT_OFFSET_X;
+  const endY   = p1.y + POOP_W/2 - FOOT_OFFSET_Y;
+  const dogX = startX + (endX - startX) * segT;
+  const dogY = startY + (endY - startY) * segT;
+  const hop = Math.sin(segT * Math.PI) * 30;
+  dog.style.left = dogX + 'px';
+  dog.style.top  = (dogY - hop) + 'px';
 })();
 
-// ── ANIMATED PREVIEW: Doodle Pad — neon flower drawn on loop ───────────────
+// ── STATIC PREVIEW: Doodle Pad — completed neon flower ─────────────────────
 // Replicates the game's neon brush exactly: screen-blended gradient stroke
 // with shadow blur for the glow halo, plus a white inner core. Hue cycles
 // continuously along the path. Drawing plays on a ~7.5s loop:
@@ -1401,7 +1327,6 @@ footer strong {
     ctx.lineJoin = 'round';
   }
   resize();
-  new ResizeObserver(resize).observe(canvas);
 
   // ── Hue → CSS rgb (game's hueToRgb HSL @ s=1) ──
   function hueToCss(h, l) {
@@ -1557,100 +1482,255 @@ footer strong {
     ctx.stroke();
   }
 
-  // ── Animation loop ──
-  // We rebuild the entire visible drawing each frame from the mapped path,
-  // re-painting black underneath. That keeps it crisp and lets the fade-out
-  // phase work cleanly (fade is just lower alpha on the black overlay).
-  const DRAW_DURATION = 5500;
-  const HOLD_DURATION = 1200;
-  const FADE_DURATION = 800;
-  const TOTAL = DRAW_DURATION + HOLD_DURATION + FADE_DURATION;
-
   // Hue cycles 1.5 full rotations across the entire drawing — matches the
   // rainbow gradient seen in the video.
   const HUE_PER_PATH = 540;
 
-  let startTime = performance.now();
-
-  function frame(now) {
-    const elapsed = (now - startTime) % TOTAL;
+  function draw() {
     const subs = mapSubpaths();
 
-    // Black background (fully repainted each frame)
+    // Black background
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = '#0a0a14';
     ctx.fillRect(0, 0, W, H);
 
-    // How many points should we have drawn by now?
-    let pointsToDraw;
-    let fadeAlpha = 0;
+    // Brush thickness scales with card size
+    const scaleK = Math.min(W, H) / 360;
+    // Static base hue offset — pick one that gives a nice palette spread
+    const baseHueOffset = 30;
 
-    if (elapsed < DRAW_DURATION) {
-      const p = elapsed / DRAW_DURATION;
-      pointsToDraw = Math.floor(p * TOTAL_POINTS);
-    } else if (elapsed < DRAW_DURATION + HOLD_DURATION) {
-      pointsToDraw = TOTAL_POINTS;
-    } else {
-      pointsToDraw = TOTAL_POINTS;
-      fadeAlpha = (elapsed - DRAW_DURATION - HOLD_DURATION) / FADE_DURATION;
-    }
-
-    if (pointsToDraw > 0) {
-      // Brush thickness scales with card size so it's neither too thin on
-      // big screens nor blown out on small ones.
-      const scaleK = Math.min(W, H) / 360;
-      const baseHueOffset = (now * 0.04) % 360; // gentle global rotation
-
-      // Walk subpaths, drawing segments only within each subpath (no pen-up
-      // segments are drawn — that's the key fix vs an unbroken polyline).
-      let drawn = 0;
-      let brushTip = null;
-
-      outer:
-      for (const sub of subs) {
-        for (let i = 0; i < sub.length - 1; i++) {
-          if (drawn >= pointsToDraw) break outer;
-          const [x1, y1] = sub[i];
-          const [x2, y2] = sub[i + 1];
-          // Hue is a function of absolute path position so the rainbow runs
-          // continuously across the whole drawing, ignoring pen-up gaps.
-          const h1 = baseHueOffset + (drawn       / TOTAL_POINTS) * HUE_PER_PATH;
-          const h2 = baseHueOffset + ((drawn + 1) / TOTAL_POINTS) * HUE_PER_PATH;
-          neonSegment(x1, y1, x2, y2, h1, h2, scaleK);
-          brushTip = [x2, y2];
-          drawn++;
-        }
-        // Account for the subpath endpoint — counts as one "point drawn"
-        // even though no segment was painted from it. This keeps the time
-        // budget accurate so the whole drawing fits in DRAW_DURATION.
+    // Walk subpaths drawing every segment (no pen-up paint, full completion)
+    let drawn = 0;
+    for (const sub of subs) {
+      for (let i = 0; i < sub.length - 1; i++) {
+        const [x1, y1] = sub[i];
+        const [x2, y2] = sub[i + 1];
+        const h1 = baseHueOffset + (drawn       / TOTAL_POINTS) * HUE_PER_PATH;
+        const h2 = baseHueOffset + ((drawn + 1) / TOTAL_POINTS) * HUE_PER_PATH;
+        neonSegment(x1, y1, x2, y2, h1, h2, scaleK);
         drawn++;
-        if (drawn >= pointsToDraw) break;
       }
-
-      // Bright "brush tip" sparkle while drawing
-      if (elapsed < DRAW_DURATION && brushTip && drawn < TOTAL_POINTS) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'screen';
-        ctx.shadowColor = '#ffffff';
-        ctx.shadowBlur = 16 * scaleK;
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(brushTip[0], brushTip[1], 3 * scaleK, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
+      drawn++; // pen-up counts as a position
     }
-
-    // Fade overlay
-    if (fadeAlpha > 0) {
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.fillStyle = `rgba(10, 10, 20, ${fadeAlpha})`;
-      ctx.fillRect(0, 0, W, H);
-    }
-
-    requestAnimationFrame(frame);
   }
-  requestAnimationFrame(frame);
+  new ResizeObserver(() => { resize(); draw(); }).observe(canvas);
+  draw();
+})();
+// ── STATIC PREVIEW: Pillar Jump — kid mid-hop between cloud-topped pillars ──
+// Composition: two pillars with a saw on the right one, player frozen at the
+// peak of the jump arc. Sky gradient backdrop with one floating decorative cloud.
+(function() {
+  const canvas = document.getElementById('pillarJumpPreview');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * devicePixelRatio;
+    canvas.height = rect.height * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  }
+  resize();
+
+  function drawPillar(sx, topY, w, len) {
+    const baseY = topY + len;
+    const grad = ctx.createLinearGradient(sx, 0, sx + w, 0);
+    grad.addColorStop(0, '#d99a1a');
+    grad.addColorStop(0.35, '#ffcc44');
+    grad.addColorStop(0.65, '#ffdb66');
+    grad.addColorStop(1, '#b87a14');
+    ctx.fillStyle = grad;
+    ctx.fillRect(sx, topY, w, len);
+
+    ctx.fillStyle = '#c89020';
+    ctx.fillRect(sx, topY, w, 5);
+    ctx.fillStyle = '#ffe48a';
+    ctx.fillRect(sx + 2, topY + 1, w - 4, 2);
+    ctx.fillStyle = '#ffcc44';
+    ctx.fillRect(sx + 3, topY + 5, w - 6, 4);
+
+    const cloudLine = baseY - len * 0.18;
+    ctx.fillStyle = 'rgba(140,80,10,0.28)';
+    for (let jy = topY + 22; jy < cloudLine; jy += 28) {
+      ctx.fillRect(sx + 3, jy, w - 6, 2);
+    }
+    ctx.fillStyle = 'rgba(80,40,5,0.22)';
+    ctx.fillRect(sx + w - 9, topY + 5, 9, cloudLine - topY - 5);
+    ctx.fillStyle = 'rgba(255,230,150,0.25)';
+    ctx.fillRect(sx, topY + 5, 5, cloudLine - topY - 5);
+
+    drawCloudBase(sx + w / 2, baseY, w);
+  }
+
+  function drawCloudBase(cx, baseY, pillarW) {
+    const scale = (pillarW * 1.5) / 100;
+    const cy = baseY - 4;
+    const blobs = [
+      { dx: -36, dy: 2,  r: 26 },
+      { dx: -10, dy: -8, r: 30 },
+      { dx: 18,  dy: -5, r: 28 },
+      { dx: 40,  dy: 4,  r: 22 },
+    ];
+    ctx.fillStyle = 'rgba(80,110,150,0.32)';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 12 * scale, 70 * scale, 10 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    for (const b of blobs) {
+      ctx.moveTo(cx + (b.dx + b.r) * scale, cy + b.dy * scale);
+      ctx.arc(cx + b.dx * scale, cy + b.dy * scale, b.r * scale, 0, Math.PI * 2);
+    }
+    ctx.fill();
+  }
+
+  function drawSaw(sx, sy, r) {
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(0.35);
+    const teeth = 14;
+    ctx.beginPath();
+    for (let i = 0; i < teeth * 2; i++) {
+      const a = (i / (teeth * 2)) * Math.PI * 2;
+      const rr = i % 2 === 0 ? r : r * 0.78;
+      const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    const mg = ctx.createRadialGradient(-r * 0.3, -r * 0.3, 2, 0, 0, r);
+    mg.addColorStop(0, '#f0f0f0');
+    mg.addColorStop(0.5, '#b8b8c0');
+    mg.addColorStop(1, '#606068');
+    ctx.fillStyle = mg;
+    ctx.fill();
+    ctx.strokeStyle = '#2a2a30';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.55, 0, Math.PI * 2);
+    ctx.fillStyle = '#8a8a92';
+    ctx.fill();
+    ctx.strokeStyle = '#3a3a42';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.18, 0, Math.PI * 2);
+    ctx.fillStyle = '#2a2a30';
+    ctx.fill();
+    ctx.strokeStyle = '#4a4a52';
+    ctx.lineWidth = 2;
+    for (let s = 0; s < 3; s++) {
+      const a = s * Math.PI * 2 / 3;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * r * 0.22, Math.sin(a) * r * 0.22);
+      ctx.lineTo(Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.strokeStyle = 'rgba(255,60,60,0.20)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, r + 2, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawPlayer(x, y, w, h, tilt) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(tilt);
+    ctx.fillStyle = '#2a4a8a';
+    ctx.fillRect(-w * 0.32, h * 0.08, w * 0.26, h * 0.42);
+    ctx.fillRect(w * 0.06, h * 0.08, w * 0.26, h * 0.42);
+    ctx.fillStyle = '#1a3870';
+    ctx.fillRect(-w * 0.32, h * 0.08, 2, h * 0.42);
+    ctx.fillRect(w * 0.06, h * 0.08, 2, h * 0.42);
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(-w * 0.36, h * 0.46, w * 0.32, 4);
+    ctx.fillRect(w * 0.04, h * 0.46, w * 0.32, 4);
+    ctx.fillStyle = '#d83020';
+    ctx.fillRect(-w * 0.36, -h * 0.12, w * 0.72, h * 0.32);
+    ctx.fillStyle = '#a82010';
+    ctx.fillRect(w * 0.24, -h * 0.12, w * 0.12, h * 0.32);
+    ctx.fillStyle = '#ec4030';
+    ctx.fillRect(-w * 0.36, -h * 0.12, 3, h * 0.32);
+    const armSwing = h * 0.12;
+    ctx.fillStyle = '#e8b890';
+    ctx.fillRect(-w * 0.46, -h * 0.10 - armSwing, w * 0.12, h * 0.28);
+    ctx.fillRect(w * 0.34, -h * 0.10 - armSwing, w * 0.12, h * 0.28);
+    ctx.fillStyle = '#f0c8a0';
+    ctx.beginPath();
+    ctx.arc(0, -h * 0.30, h * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#4a2c14';
+    ctx.beginPath();
+    ctx.arc(0, -h * 0.34, h * 0.18, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(-h * 0.18, -h * 0.36, h * 0.36, h * 0.04);
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(-h * 0.06, -h * 0.30, 2, 2.5);
+    ctx.fillRect(h * 0.04, -h * 0.30, 2, 2.5);
+    ctx.restore();
+  }
+
+  function drawSkyCloud(cx, cy, scale) {
+    const blobs = [
+      { dx: -28, dy: 4,  r: 20 },
+      { dx: -8,  dy: -6, r: 24 },
+      { dx: 14,  dy: -2, r: 22 },
+      { dx: 32,  dy: 6,  r: 18 },
+    ];
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath();
+    for (const b of blobs) {
+      ctx.moveTo(cx + (b.dx + b.r) * scale, cy + b.dy * scale);
+      ctx.arc(cx + b.dx * scale, cy + b.dy * scale, b.r * scale, 0, Math.PI * 2);
+    }
+    ctx.fill();
+  }
+
+  function draw() {
+    const W = canvas.width / devicePixelRatio;
+    const H = canvas.height / devicePixelRatio;
+
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#7ec8ff');
+    sky.addColorStop(1, '#3a6aa0');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+
+    drawSkyCloud(W * 0.15, H * 0.18, Math.min(W, H) / 320);
+
+    // Pillars: tops lower in the frame so there's clear airspace for the
+    // player to be obviously ABOVE them at the jump apex.
+    const pillarW = W * 0.22;
+    const pillarTopY = H * 0.60;          // pillars start at 60% down (was 40%)
+    const pillarLen = H * 0.40;            // shorter pillars extending to bottom
+    const leftX = W * 0.06;
+    const rightX = W * 0.72;
+    drawPillar(leftX, pillarTopY, pillarW, pillarLen);
+    drawPillar(rightX, pillarTopY, pillarW, pillarLen);
+
+    // Player at the apex of the arc — well above both pillar tops, centered
+    // horizontally between the pillar centers. At the peak, tilt is 0
+    // (upright), which reads as "jumping" not "falling".
+    const playerW = pillarW * 0.34;
+    const playerH = playerW * 1.46;
+    const px = (leftX + pillarW / 2 + rightX + pillarW / 2) / 2;
+    const py = H * 0.34;                   // ~26% of height clearance above pillar tops
+    drawPlayer(px, py, playerW, playerH, 0);
+
+    // Saw between the pillars, at pillar-top level — the danger he's
+    // clearing. Sized large enough to read as a threat.
+    const sawR = pillarW * 0.30;
+    drawSaw(px, pillarTopY + sawR * 0.2, sawR);
+  }
+
+  new ResizeObserver(() => { resize(); draw(); }).observe(canvas);
+  draw();
 })();
 </script>
 </body>
