@@ -197,6 +197,14 @@ main {
   width:100%; height:100%;
   display:block;
 }
+/* Water Run — deep moody near-black, matches game */
+.thumb-water-run {
+  background: #060811;
+}
+.thumb-water-run canvas {
+  width:100%; height:100%;
+  display:block;
+}
 /* coming-soon card style */
 .card-coming {
   opacity: 0.45;
@@ -232,20 +240,8 @@ main {
   font-size: 13px;
   color: var(--subtext);
   line-height: 1.5;
-  margin-bottom: 12px;
 }
-.card-tags {
-  display:flex; gap:6px; flex-wrap:wrap;
-}
-.tag {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: 6px;
-  border: 1px solid;
-}
+
 /* PLAY button */
 .card-play {
   position:absolute;
@@ -291,6 +287,11 @@ main {
 .card-pillar-jump {
   --card-color: #5cc8ff;
   --card-glow: rgba(92,200,255,0.35);
+}
+/* ── WATER RUN SPECIFIC ── */
+.card-water-run {
+  --card-color: #e8eef8;
+  --card-glow: rgba(232,238,248,0.25);
 }
 /* ── FOOTER ── */
 footer {
@@ -559,8 +560,9 @@ footer strong {
 
 <div class="marquee-wrap">
   <div class="marquee-inner">
-    <span>NEW!</span> PILLAR JUMP IS LIVE &nbsp;·&nbsp;
-    <span>☁️</span> HOP THE PILLARS &nbsp;·&nbsp;
+    <span>NEW!</span> WATER RUN IS LIVE &nbsp;·&nbsp;
+    <span>💧</span> ABSORB THE DROPS &nbsp;·&nbsp;
+    <span>☁️</span> PILLAR JUMP &nbsp;·&nbsp;
     <span>🎨</span> DOODLE PAD &nbsp;·&nbsp;
     <span>🐾</span> POOPIE STOMPER &nbsp;·&nbsp;
     <span>🏜️</span> CANYON RACER &nbsp;·&nbsp;
@@ -568,8 +570,9 @@ footer strong {
     <span>🚀</span> SPACE BATTLE MODE &nbsp;·&nbsp;
     <span>💀</span> 3 DIFFICULTY LEVELS &nbsp;·&nbsp;
     <span>🔥</span> BOOST YOUR WAY TO VICTORY &nbsp;·&nbsp;
-    <span>NEW!</span> PILLAR JUMP IS LIVE &nbsp;·&nbsp;
-    <span>☁️</span> HOP THE PILLARS &nbsp;·&nbsp;
+    <span>NEW!</span> WATER RUN IS LIVE &nbsp;·&nbsp;
+    <span>💧</span> ABSORB THE DROPS &nbsp;·&nbsp;
+    <span>☁️</span> PILLAR JUMP &nbsp;·&nbsp;
     <span>🎨</span> DOODLE PAD &nbsp;·&nbsp;
     <span>🐾</span> POOPIE STOMPER &nbsp;·&nbsp;
     <span>🏜️</span> CANYON RACER &nbsp;·&nbsp;
@@ -593,11 +596,6 @@ footer strong {
       <div class="card-info">
         <div class="card-title" style="color:#ff3c3c;">💀 DESTRUCTION DERBY</div>
         <div class="card-desc">Monster trucks and spaceships battle it out. Ram your opponent 7 times to win — dirt arena or deep space.</div>
-        <div class="card-tags">
-          <span class="tag" style="color:#ff3c3c;border-color:#ff3c3c44;background:rgba(255,60,60,0.08);">Action</span>
-          <span class="tag" style="color:#ffdd00;border-color:#ffdd0044;background:rgba(255,221,0,0.08);">1 Player</span>
-          <span class="tag" style="color:#00e5ff;border-color:#00e5ff44;background:rgba(0,229,255,0.08);">Mobile</span>
-        </div>
       </div>
     </a>
 
@@ -610,11 +608,6 @@ footer strong {
       <div class="card-info">
         <div class="card-title" style="color:#ff8800;">🏜️ CANYON RACER</div>
         <div class="card-desc">OutRun-style desert circuit racing. Beat the Skull Crusher across 3, 5, or 7 laps through sun-scorched canyons.</div>
-        <div class="card-tags">
-          <span class="tag" style="color:#ff8800;border-color:#ff880044;background:rgba(255,136,0,0.08);">Racing</span>
-          <span class="tag" style="color:#ffdd00;border-color:#ffdd0044;background:rgba(255,221,0,0.08);">1 Player</span>
-          <span class="tag" style="color:#00e5ff;border-color:#00e5ff44;background:rgba(0,229,255,0.08);">Mobile</span>
-        </div>
       </div>
     </a>
 
@@ -644,11 +637,6 @@ footer strong {
       <div class="card-info">
         <div class="card-title" style="color:#8b5a2b;">🐾 POOPIE STOMPER</div>
         <div class="card-desc">Drag the doggo around the yard and squish all the poops! A silly stomp-'em-up the little ones can't put down.</div>
-        <div class="card-tags">
-          <span class="tag" style="color:#8b5a2b;border-color:#8b5a2b44;background:rgba(139,90,43,0.08);">Casual</span>
-          <span class="tag" style="color:#ffdd00;border-color:#ffdd0044;background:rgba(255,221,0,0.08);">Kids</span>
-          <span class="tag" style="color:#00e5ff;border-color:#00e5ff44;background:rgba(0,229,255,0.08);">Mobile</span>
-        </div>
       </div>
     </a>
 
@@ -661,11 +649,6 @@ footer strong {
       <div class="card-info">
         <div class="card-title" style="color:#ff2d92;">🎨 DOODLE PAD</div>
         <div class="card-desc">Free drawing doodle pad with neon, rainbow, firework &amp; starburst brushes. Go wild on the background of your choice, then start fresh whenever you're ready.</div>
-        <div class="card-tags">
-          <span class="tag" style="color:#ff2d92;border-color:#ff2d9244;background:rgba(255,45,146,0.08);">Creative</span>
-          <span class="tag" style="color:#ffdd00;border-color:#ffdd0044;background:rgba(255,221,0,0.08);">Kids</span>
-          <span class="tag" style="color:#00e5ff;border-color:#00e5ff44;background:rgba(0,229,255,0.08);">Mobile</span>
-        </div>
       </div>
     </a>
 
@@ -678,11 +661,18 @@ footer strong {
       <div class="card-info">
         <div class="card-title" style="color:#5cc8ff;">☁️ PILLAR JUMP</div>
         <div class="card-desc">Hop pillar to pillar over the open sky. Dodge spinning saws and don't linger — bombs drop after 10 seconds.</div>
-        <div class="card-tags">
-          <span class="tag" style="color:#5cc8ff;border-color:#5cc8ff44;background:rgba(92,200,255,0.08);">Arcade</span>
-          <span class="tag" style="color:#ffdd00;border-color:#ffdd0044;background:rgba(255,221,0,0.08);">Reflex</span>
-          <span class="tag" style="color:#ff6b35;border-color:#ff6b3544;background:rgba(255,107,53,0.08);">One-Tap</span>
-        </div>
+      </div>
+    </a>
+
+    <!-- WATER RUN -->
+    <a href="water-run.html" class="game-card card-water-run">
+      <div class="card-thumb thumb-water-run">
+        <canvas id="waterRunPreview"></canvas>
+      </div>
+      <div class="card-play">▶ PLAY</div>
+      <div class="card-info">
+        <div class="card-title" style="color:#e8eef8;">💧 WATER RUN</div>
+        <div class="card-desc">Absorb water droplets to grow. The bigger you get, the harder you are to stop. Don't slide off the edge.</div>
       </div>
     </a>
 
@@ -693,11 +683,8 @@ footer strong {
         <div class="coming-label">Coming Soon</div>
       </div>
       <div class="card-info">
-        <div class="card-title" style="color:var(--subtext);">??? GAME 6</div>
+        <div class="card-title" style="color:var(--subtext);">??? GAME 7</div>
         <div class="card-desc">Something epic is being designed...</div>
-        <div class="card-tags">
-          <span class="tag" style="color:var(--subtext);border-color:rgba(136,136,170,0.2);background:rgba(136,136,170,0.05);">Mystery</span>
-        </div>
       </div>
     </div>
 
@@ -1727,6 +1714,169 @@ footer strong {
     // clearing. Sized large enough to read as a threat.
     const sawR = pillarW * 0.30;
     drawSaw(px, pillarTopY + sawR * 0.2, sawR);
+  }
+
+  new ResizeObserver(() => { resize(); draw(); }).observe(canvas);
+  draw();
+})();
+// ── STATIC PREVIEW: Water Run — moody droplet field ────────────────────────
+// Evokes the game's signature dark, contemplative aesthetic with simplified
+// drops (shadow + dark-rim body + pinpoint specular). Doesn't replicate the
+// full refraction-blit effect, but hits the right visual register.
+(function() {
+  const canvas = document.getElementById('waterRunPreview');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * devicePixelRatio;
+    canvas.height = rect.height * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  }
+  resize();
+
+  // Simplified single drop: ambient shadow, dark body gradient (lighter center,
+  // darker edge — matches the game's "longer light path at edges" optical look),
+  // dark rim, pinpoint specular highlight. The `stretch` parameter elongates
+  // the drop along the x axis to suggest motion.
+  function drawDrop(cx, cy, r, stretch = 0, alpha = 1) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    // Stretch is implemented via a horizontal scale around the drop center
+    ctx.translate(cx, cy);
+    if (stretch !== 0) ctx.scale(1 + stretch, 1 - stretch * 0.4);
+
+    // 1. Soft ambient shadow (drawn before the drop, slightly offset down)
+    const shR = r * 1.35;
+    const sg = ctx.createRadialGradient(0, r * 0.1, r * 0.5, 0, r * 0.1, shR);
+    sg.addColorStop(0, 'rgba(0, 4, 12, 0.45)');
+    sg.addColorStop(0.6, 'rgba(0, 4, 12, 0.18)');
+    sg.addColorStop(1, 'rgba(0, 4, 12, 0)');
+    ctx.fillStyle = sg;
+    ctx.beginPath();
+    ctx.arc(0, r * 0.1, shR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. Body — radial gradient mimicking the game's "transparent dome, darker
+    //    at edges" optics. Almost clear at center, deep dark at rim.
+    const bg = ctx.createRadialGradient(0, 0, r * 0.15, 0, 0, r);
+    bg.addColorStop(0, 'rgba(20, 28, 45, 0.20)');
+    bg.addColorStop(0.55, 'rgba(8, 14, 28, 0.55)');
+    bg.addColorStop(0.85, 'rgba(2, 6, 16, 0.85)');
+    bg.addColorStop(1, 'rgba(0, 2, 10, 0.95)');
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3. Dark rim — emphasizes the surface-tension boundary
+    ctx.strokeStyle = 'rgba(0, 2, 8, 0.7)';
+    ctx.lineWidth = Math.max(0.6, r * 0.04);
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 4. Subtle bright crescent on upper-left — ambient light catch.
+    //    Created by a partial arc with a soft radial gradient.
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.96, 0, Math.PI * 2);
+    ctx.clip();
+    const hg = ctx.createRadialGradient(-r * 0.35, -r * 0.35, r * 0.05, -r * 0.35, -r * 0.35, r * 0.85);
+    hg.addColorStop(0, 'rgba(180, 200, 230, 0.35)');
+    hg.addColorStop(0.6, 'rgba(180, 200, 230, 0.08)');
+    hg.addColorStop(1, 'rgba(180, 200, 230, 0)');
+    ctx.fillStyle = hg;
+    ctx.fillRect(-r, -r, r * 2, r * 2);
+    ctx.restore();
+
+    // 5. Pinpoint specular — tiny bright dot at upper-left
+    ctx.beginPath();
+    ctx.arc(-r * 0.42, -r * 0.42, Math.max(0.6, r * 0.08), 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(230, 240, 255, 0.85)';
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function draw() {
+    const W = canvas.width / devicePixelRatio;
+    const H = canvas.height / devicePixelRatio;
+
+    // Game's actual background — ported from renderBackground() in water-run.html
+    // Four colored radial blobs (blues, violets, teal) additively blended over
+    // a deep near-black base, plus a dark vignette to anchor the edges.
+    // Frozen at tSec = 2.0 for a deterministic composition with the blobs
+    // offset from their anchors in an organic-looking way.
+    const tSec = 2.0;
+    const bgBlobs = [
+      { hue: 215, sat: 60, lig: 34, bx: 0.22, by: 0.18, ax: 0.10, ay: 0.07, sp: 0.05, ph: 0.0 },
+      { hue: 268, sat: 50, lig: 28, bx: 0.78, by: 0.30, ax: 0.12, ay: 0.09, sp: 0.06, ph: 1.7 },
+      { hue: 195, sat: 65, lig: 32, bx: 0.50, by: 0.82, ax: 0.14, ay: 0.07, sp: 0.04, ph: 3.1 },
+      { hue: 290, sat: 45, lig: 24, bx: 0.15, by: 0.92, ax: 0.09, ay: 0.06, sp: 0.07, ph: 4.4 },
+    ];
+
+    // Inky base
+    ctx.fillStyle = '#050810';
+    ctx.fillRect(0, 0, W, H);
+
+    // Additive blobs
+    ctx.globalCompositeOperation = 'lighter';
+    for (const b of bgBlobs) {
+      const t = tSec * b.sp + b.ph;
+      const cx = (b.bx + Math.sin(t) * b.ax) * W;
+      const cy = (b.by + Math.cos(t * 0.8) * b.ay) * H;
+      const r = Math.max(W, H) * 0.55;
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      g.addColorStop(0, `hsla(${b.hue}, ${b.sat}%, ${b.lig}%, 0.9)`);
+      g.addColorStop(0.5, `hsla(${b.hue}, ${b.sat}%, ${b.lig * 0.5}%, 0.4)`);
+      g.addColorStop(1, `hsla(${b.hue}, ${b.sat}%, ${b.lig * 0.2}%, 0)`);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+
+    // Vignette
+    const vign = ctx.createRadialGradient(W * 0.5, H * 0.5, W * 0.3, W * 0.5, H * 0.5, Math.max(W, H) * 0.75);
+    vign.addColorStop(0, 'rgba(0,0,0,0)');
+    vign.addColorStop(1, 'rgba(0,0,0,0.5)');
+    ctx.fillStyle = vign;
+    ctx.fillRect(0, 0, W, H);
+
+    const scale = Math.min(W, H) / 320;
+
+    // Atmospheric micro drops — scattered, low alpha, deterministic positions
+    // (a deliberate scatter, not random — same composition every page load).
+    const microPositions = [
+      [0.12, 0.18], [0.22, 0.42], [0.08, 0.68], [0.31, 0.85],
+      [0.48, 0.12], [0.55, 0.58], [0.62, 0.78], [0.77, 0.32],
+      [0.88, 0.62], [0.41, 0.34], [0.71, 0.18], [0.18, 0.91],
+      [0.83, 0.88], [0.93, 0.45],
+    ];
+    for (const [fx, fy] of microPositions) {
+      const r = (2 + (fx * 7 + fy * 11) % 3) * scale;
+      drawDrop(fx * W, fy * H, r, 0, 0.55);
+    }
+
+    // Target drops — the absorbable smaller drops, scattered around player
+    const targets = [
+      { fx: 0.28, fy: 0.32, r: 14 * scale },
+      { fx: 0.72, fy: 0.66, r: 18 * scale },
+      { fx: 0.82, fy: 0.28, r: 11 * scale },
+      { fx: 0.18, fy: 0.72, r: 12 * scale },
+    ];
+    for (const t of targets) {
+      drawDrop(t.fx * W, t.fy * H, t.r);
+    }
+
+    // Player drop — larger, slightly off-center, with subtle stretch as if
+    // moving slowly to the right. This is the focal point.
+    const playerX = W * 0.48;
+    const playerY = H * 0.52;
+    const playerR = 36 * scale;
+    drawDrop(playerX, playerY, playerR, 0.06);
   }
 
   new ResizeObserver(() => { resize(); draw(); }).observe(canvas);

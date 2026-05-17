@@ -62,6 +62,30 @@
     letter-spacing: 0.08em;
   }
 
+  /* Arcade back button — mirrors HUD positioning and visual weight.
+     Low-contrast, mono font, no chunky box. Shown only when arrived from
+     the arcade index (referrer check). */
+  #arcadeBtn {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 18px);
+    left: 22px;
+    z-index: 2;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-weight: 300;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: rgba(255, 255, 255, 0.65);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    display: none; /* shown via JS if referrer matches */
+    transition: color 0.2s ease;
+  }
+  #arcadeBtn:hover, #arcadeBtn:active {
+    color: rgba(255, 255, 255, 0.95);
+  }
+
   /* Overlays — start screen and game over screen share structure */
   .overlay {
     position: fixed; inset: 0;
@@ -167,6 +191,8 @@
 
 <canvas id="game"></canvas>
 
+<a id="arcadeBtn" href="index.html" aria-label="Back to arcade">← ARCADE</a>
+
 <div id="hud"><span id="score">50.0</span><span class="unit">µL</span></div>
 
 <!-- Start / calibrate screen -->
@@ -219,6 +245,16 @@
 (() => {
   'use strict';
   window.__logStartup && window.__logStartup('IIFE start');
+
+  // Arcade back button — show only when arrived from the NRKade index
+  (() => {
+    const btn = document.getElementById('arcadeBtn');
+    if (!btn) return;
+    const ref = document.referrer;
+    if (ref && (ref.includes('index') || ref === location.origin + '/')) {
+      btn.style.display = 'inline-block';
+    }
+  })();
 
   // ========================================================================
   // SETUP & CONSTANTS
