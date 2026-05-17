@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#0a0a0f" />
+<title>Water Run</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a0a0f;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    color: #fff;
+    touch-action: none;
+    overscroll-behavior: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Background is now drawn onto the canvas (behind the drops) so we can
+     sample it for the refraction effect inside each droplet. */
+  html, body { background: #060811; }
+
+  canvas {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+    display: block;
+  }
+
+  /* HUD — minimal, measurement-instrument feel.
+     Top-right, slightly offset, low-contrast so droplets reading over it feels natural. */
+  #hud {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 18px);
+    right: 22px;
+    z-index: 2;
+    font-weight: 200;
+    font-size: 28px;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.88);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+    pointer-events: none;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  #hud .unit {
+    font-size: 14px;
+    font-weight: 300;
+    opacity: 0.65;
+    letter-spacing: 0.08em;
+  }
+
+  /* Overlays — start screen and game over screen share structure */
+  .overlay {
+    position: fixed; inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 40px;
+    background: rgba(8, 8, 16, 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    text-align: center;
+    transition: opacity 0.35s ease;
+  }
+  .overlay.hidden { opacity: 0; pointer-events: none; }
+
+  .title {
+    font-weight: 200;
+    font-size: 38px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.95);
+  }
+  .title .accent {
+    color: #7ec9ff;
+    font-weight: 300;
+  }
+  .subtitle {
+    font-weight: 300;
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+    max-width: 280px;
+    line-height: 1.7;
+  }
+
+  .btn {
+    font-family: inherit;
+    font-weight: 300;
+    font-size: 14px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.92);
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.35);
+    padding: 16px 32px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.7);
+    transform: scale(0.98);
+  }
+
+  .final-score {
+    font-weight: 200;
+    font-size: 64px;
+    letter-spacing: 0.02em;
+    color: #7ec9ff;
+    font-variant-numeric: tabular-nums;
+  }
+  .final-score .unit {
+    font-size: 22px;
+    opacity: 0.6;
+    margin-left: 6px;
+  }
+  .label {
+    font-weight: 300;
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .err {
+    color: #ff9488;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    max-width: 280px;
+    line-height: 1.6;
+    margin-top: -12px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Global error banner — appears if anything in the script crashes.
+     Visible on top of everything so mobile users can see errors without devtools. -->
+<div id="errBanner" style="
+  position:fixed; top:0; left:0; right:0; z-index:9999;
+  background:#4a0000; color:#ffd0d0;
+  font-family:ui-monospace,monospace; font-size:11px; line-height:1.4;
+  padding:10px 14px; max-height:50vh; overflow:auto;
+  border-bottom:2px solid #ff4444;
+  display:none; white-space:pre-wrap; word-break:break-word;">
+</div>
+
+<canvas id="game"></canvas>
+
+<div id="hud"><span id="score">50.0</span><span class="unit">µL</span></div>
+
+<!-- Start / calibrate screen -->
+<div id="start" class="overlay">
+  <div class="title">Water<span class="accent"> Run</span></div>
+  <div class="subtitle">Tilt your phone to roll the droplet.<br>Absorb others to grow.<br>Don't slide off.</div>
+  <button id="startBtn" class="btn">Start</button>
+  <div id="err" class="err" style="display:none"></div>
+</div>
+
+<!-- Game over screen -->
+<div id="over" class="overlay hidden">
+  <div class="label">Final Volume</div>
+  <div class="final-score"><span id="finalScore">50.0</span><span class="unit">µL</span></div>
+  <button id="replayBtn" class="btn">Replay</button>
+</div>
+
+<script>
+// -------- Global error surface (installed first, outside IIFE) --------
+// Any JS error anywhere in this file will show up in the red banner at
+// the top of the screen. No console required.
+(function installErrorSurface() {
+  const banner = document.getElementById('errBanner');
+  function show(msg) {
+    if (!banner) return;
+    banner.style.display = 'block';
+    // Append rather than replace, so multiple errors stack
+    const entry = document.createElement('div');
+    entry.style.marginBottom = '6px';
+    entry.textContent = msg;
+    banner.appendChild(entry);
+  }
+  window.addEventListener('error', (e) => {
+    const where = e.filename ? ` @ ${e.filename}:${e.lineno}:${e.colno}` : '';
+    show(`❌ ${e.message}${where}\n${e.error && e.error.stack ? e.error.stack : ''}`);
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    show(`❌ unhandled promise: ${e.reason && e.reason.message ? e.reason.message : e.reason}`);
+  });
+  // Expose for manual logging from inside the IIFE
+  window.__err = show;
+  // Startup heartbeat — confirms the script reached this point at all
+  window.__logStartup = (step) => {
+    // Uncomment next line to trace boot sequence:
+    // show(`▸ ${step}`);
+  };
+})();
+</script>
+<script>
+(() => {
+  'use strict';
+  window.__logStartup && window.__logStartup('IIFE start');
+
+  // ========================================================================
+  // SETUP & CONSTANTS
+  // ========================================================================
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d', { alpha: true });
+
+  const DPR = Math.min(window.devicePixelRatio || 1, 2); // cap at 2 for perf on high-dpi phones
+  let W = 0, H = 0;  // CSS pixels (logical)
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', () => setTimeout(resize, 200));
+
+  // ---- Tunables (gameplay feel lives here — all the knobs in one place)
+  const TUNE = {
+    // Physics
+    baseAccel: 1200,         // px/s^2 at full tilt, at starting mass
+    massAccelBoost: 0.50,    // bigger = harder to control. accel = base × mass^boost.
+                             // 0 = constant accel. 0.5 = 4x mass has 2x accel.
+                             // This is the engine of "growing makes you dangerous."
+    friction: 0.985,         // per-frame velocity multiplier at 60fps (tiny amount of drag so full-release slows eventually)
+    tiltMaxDeg: 35,          // beyond this tilt, you're already at max accel — don't require wrist-breaking angles
+    tiltDeadzone: 1.5,       // degrees — ignore tiny jitter when phone is "flat"
+    // Starting state
+    startVolume: 100.0,      // µL — player starts here.
+    minVolume: 8,            // target drop min volume
+    maxVolume: 40,           // target drop max volume
+    targetCount: 12,         // on-screen static drops
+    microCount: 300,         // atmospheric drops — visual density, no game effect
+    // Visuals
+    radiusPerUL: 1.25,       // px per µL — r = radiusPerUL * cbrt(volume) * tuningConstant — actually, we use area scaling (see deriveRadius)
+    stretchMax: 0.28,        // max ellipse stretch factor at high speed (0.28 = 28% elongation)
+    stretchVelRef: 900,      // velocity (px/s) at which stretch approaches max
+    // Wobble (jiggle on braking / direction change)
+    wobSpring: 55,           // spring stiffness — higher = snappier return
+    wobDamp: 6,              // damping — higher = less oscillation, more dead
+    wobImpulseScale: 0.012,  // how much velocity change feeds into wobble velocity
+    wobMaxAmp: 0.35,         // clamp — prevents visual explosion on huge impulses
+    // Target physics — static drops now respond to tilt with their own
+    // surface-tension-plus-inertia model. Heavier drops are "stickier"
+    // (higher stick threshold via volume). Drops that touch each other
+    // merge. Drops that leave the buffer get respawned ("new raindrop").
+    //
+    // Tilt force on a target = player's tilt accel × targetTiltScale × mass^(-targetAccelMassExp)
+    // (negative exp means bigger drops feel LESS push — surface tension
+    //  holds them harder). Combined with stick threshold below.
+    targetTiltScale: 0.10,   // 0 = static (old behavior), 1 = moves as freely as player
+    targetAccelMassExp: 0.4, // how much mass reduces a target's responsiveness. 0 = all equal.
+    // Stick threshold — below this tilt magnitude (normalized 0-1), a
+    // slow-moving target stays stuck. Scales with target volume so bigger
+    // drops need more tilt to un-stick.
+    targetStickTilt: 0.36,   // base stick threshold at min-volume drop
+    targetStickTiltMassExp: 0.5,  // how much volume raises the threshold
+    targetStickVel: 8,       // below this px/s, a target can re-stick
+    targetFriction: 1.00,    // per-frame velocity multiplier at 60fps
+    // Chaos — random per-frame impulses on targets, simulating the messy
+    // microphysics of real water on glass (surface contamination, uneven
+    // pinning, air currents). Scales with tilt force, so higher chaos just
+    // means "more organic jitter proportional to whatever motion is
+    // already happening." Pairs well with a low targetTiltScale.
+    targetJitter: 0.50,      // 0 = perfectly clean physics, 0.5 = chaotic
+    // Mass-scaled friction — the core of the balance-game design.
+    // Bigger drops coast longer after tilt release, making overcorrection
+    // inevitable at size. The game becomes "manage your own momentum."
+    //
+    // effective drag = (1 - friction) * mass^(-frictionMassExp)
+    // effective friction = 1 - effective drag
+    //
+    // At exp=0, friction is constant (old behavior).
+    // At exp=0.5, a 4× mass drop has half the drag.
+    // At exp=1, drag scales inversely with mass (extreme coast).
+    frictionMassExp: 0.5,    // default 0.5 — meaningful slide, not runaway
+    // Edge buffer — drop can travel this far past the visible edge (in
+    // world-space px) before game over triggers. Gives skilled players a
+    // recovery window for overshoots. The drop is visibly off-screen in
+    // this zone, so it doubles as visual warning.
+    edgeBuffer: 80,          // world-space px past visible edge
+    // Score animation
+    scoreLerpHz: 6,          // how fast the displayed score chases true score (higher = faster)
+  };
+
+  // Physical radius from volume. r = k * sqrt(volume).
+  // Tuned for real-water-drop scale on a phone screen. Starting player
+  // (50µL) is only slightly bigger than the largest target, so the player
+  // reads as "another raindrop among raindrops" at start. Growth is
+  // visible distinction earned through play.
+  //   50µL  -> ~11px radius  (starting player)
+  //   200µL -> ~23px radius
+  //   500µL -> ~36px radius
+  //   1000µL -> ~51px radius
+  function deriveRadius(volume) {
+    return 1.6 * Math.sqrt(volume);
+  }
+
+  // ========================================================================
+  // STATE
+  // ========================================================================
+  const STATE = {
+    READY: 'ready',     // showing calibrate screen
+    PLAYING: 'playing',
+    OVER: 'over',
+  };
+  let state = STATE.READY;
+
+  // Orientation — raw from device
+  let rawBeta = 0;    // front-back tilt (x axis)  -180..180
+  let rawGamma = 0;   // left-right tilt (y axis)  -90..90
+  let haveOrientation = false;
+
+  // Calibrated zero — set on tap
+  let calBeta = 0;
+  let calGamma = 0;
+
+  // Shape-noise amplitudes (fraction of radius).
+  const PLAYER_SHAPE_AMP = 0.09;   // ~9% perturbation — lumpy but still clearly "me"
+  const TARGET_SHAPE_AMP = 0.14;   // ~14% — more varied, reads as real beads
+
+  // Player droplet
+  const player = {
+    x: 0, y: 0,
+    vx: 0, vy: 0,
+    // Wobble: a spring-damped velocity-lag vector. When the player's actual
+    // velocity changes suddenly (braking, turning), this lags behind, and
+    // the difference drives shape oscillation. See update() for physics.
+    wobX: 0, wobY: 0,          // current wobble offset (oscillates)
+    wobVX: 0, wobVY: 0,        // wobble velocity (spring integration)
+    lastVX: 0, lastVY: 0,      // velocity from previous frame — for impulse detection
+    volume: TUNE.startVolume,
+    r: deriveRadius(TUNE.startVolume),
+    sig: null,   // populated below once makeShapeSig is defined — see init
+  };
+
+  // Static target drops
+  const targets = []; // { x, y, volume, r, spawnT, sig }
+
+  // Micro drops — atmospheric scenery. Tiny water beads filling the space
+  // between game objects so the screen actually looks rained-on.
+  //   MICRO_COUNT: target density. High enough to read as "rain on screen"
+  //   MICRO_MIN/MAX_R: size range in pixels
+  //   MICRO_RESPAWN_MS: base delay before a cleared drop comes back
+  //   MICRO_SPRINKLE_PER_SEC: extra "fresh rain" landings per sec regardless
+  //                           of clears — creates the "still raining" feel
+  //   MICRO_MIN/MAX_VOL: µL transferred to the clearer when absorbed.
+  //                     Small enough that steady-state growth is slow, but
+  //                     meaningful — reinforces the "rain soaks you" idea.
+  //   MICRO_ALPHA: render opacity — keeps micros subtle vs game drops
+  // (MICRO_COUNT is now TUNE.microCount — runtime-adjustable)
+  const MICRO_MIN_R = 1.6;
+  const MICRO_MAX_R = 3.2;
+  const MICRO_RESPAWN_MS = 3000;
+  const MICRO_RESPAWN_JITTER = 2000;
+  const MICRO_SPRINKLE_PER_SEC = 8;
+  const MICRO_MIN_VOL = 0.15;
+  const MICRO_MAX_VOL = 0.6;
+  const MICRO_ALPHA = 0.55;
+  const microDrops = [];
+  let microSprinkleAccum = 0;   // fractional accumulator for sprinkle spawns
+
+  // Score
+  let displayedScore = TUNE.startVolume;  // what's shown, chases trueScore
+  let trueScore = TUNE.startVolume;
+
+  // Time
+  let lastT = performance.now();
+
+  // World bounds are simply the screen rectangle [0, W] × [0, H]. The game
+  // plays in a fixed-size arena the size of the device's viewport.
+  function worldMinX() { return 0; }
+  function worldMaxX() { return W; }
+  function worldMinY() { return 0; }
+  function worldMaxY() { return H; }
+  function worldW() { return W; }
+  function worldH() { return H; }
+  function worldCenterX() { return W / 2; }
+  function worldCenterY() { return H / 2; }
+
+  // ========================================================================
+  // SPAWNING
+  // ========================================================================
+  function randomTargetVolume() {
+    return TUNE.minVolume + Math.random() * (TUNE.maxVolume - TUNE.minVolume);
+  }
+
+  function spawnTarget(avoidPlayer = true) {
+    const margin = 40;
+    let x, y, tries = 0;
+    const vol = randomTargetVolume();
+    const r = deriveRadius(vol);
+    const minX = worldMinX(), maxX = worldMaxX();
+    const minY = worldMinY(), maxY = worldMaxY();
+    do {
+      x = minX + margin + Math.random() * (maxX - minX - 2 * margin);
+      y = minY + margin + Math.random() * (maxY - minY - 2 * margin);
+      tries++;
+      if (tries > 20) break;
+    } while (
+      avoidPlayer &&
+      Math.hypot(x - player.x, y - player.y) < player.r + r + 60
+    );
+    targets.push({
+      x, y, volume: vol, r,
+      vx: 0, vy: 0,                    // for target physics
+      spawnT: performance.now(),       // for splat-in animation
+      sig: makeShapeSig(TARGET_SHAPE_AMP),
+    });
+  }
+
+  // Scatter micro drops across the playfield. Called once on game reset.
+  // Positions are random but slightly biased toward edges (real phones pool
+  // water at corners/edges via gravity + surface tension). Each drop gets
+  // a random radius in the tiny range and no game-relevant state.
+  function seedMicroDrops() {
+    microDrops.length = 0;
+    const minX = worldMinX(), rangeX = worldMaxX() - minX;
+    const minY = worldMinY(), rangeY = worldMaxY() - minY;
+    for (let i = 0; i < TUNE.microCount; i++) {
+      microDrops.push(newMicroDrop(minX + Math.random() * rangeX, minY + Math.random() * rangeY));
+    }
+  }
+
+  function newMicroDrop(x, y) {
+    return {
+      x, y,
+      r: MICRO_MIN_R + Math.random() * (MICRO_MAX_R - MICRO_MIN_R),
+      vol: MICRO_MIN_VOL + Math.random() * (MICRO_MAX_VOL - MICRO_MIN_VOL),
+      clearedAt: 0,
+      respawnAt: 0,
+      sig: makeShapeSig(0.10),
+    };
+  }
+
+  function resetGame() {
+    player.x = W / 2;
+    player.y = H / 2;
+    player.vx = 0;
+    player.vy = 0;
+    player.lastVX = 0;
+    player.lastVY = 0;
+    player.wobX = 0;
+    player.wobY = 0;
+    player.wobVX = 0;
+    player.wobVY = 0;
+    player.volume = TUNE.startVolume;
+    player.r = deriveRadius(player.volume);
+    player.sig = makeShapeSig(PLAYER_SHAPE_AMP);
+    targets.length = 0;
+    trueScore = TUNE.startVolume;
+    displayedScore = TUNE.startVolume;
+    updateScoreHUD(true);
+    for (let i = 0; i < TUNE.targetCount; i++) spawnTarget(true);
+    seedMicroDrops();
+  }
+
+  // ========================================================================
+  // ORIENTATION / PERMISSIONS
+  // ========================================================================
+  function onOrientation(e) {
+    if (e.beta == null || e.gamma == null) return;
+    rawBeta = e.beta;
+    rawGamma = e.gamma;
+    haveOrientation = true;
+  }
+
+  async function requestOrientationPermission() {
+    // iOS 13+ requires explicit permission via user gesture
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const res = await DeviceOrientationEvent.requestPermission();
+        if (res !== 'granted') {
+          showErr('Motion access denied. Enable in Settings → Safari → Motion & Orientation.');
+          return false;
+        }
+      } catch (err) {
+        showErr('Could not request motion access. Try reloading.');
+        return false;
+      }
+    }
+    window.addEventListener('deviceorientation', onOrientation, true);
+    return true;
+  }
+
+  function showErr(msg) {
+    const el = document.getElementById('err');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  // ========================================================================
+  // INPUT → ACCEL
+  // ========================================================================
+  function currentTilt() {
+    // gamma = left-right (controls X), beta = front-back (controls Y)
+    let gx = rawGamma - calGamma;
+    let gy = rawBeta - calBeta;
+
+    // deadzone
+    if (Math.abs(gx) < TUNE.tiltDeadzone) gx = 0;
+    if (Math.abs(gy) < TUNE.tiltDeadzone) gy = 0;
+
+    // clamp to tiltMaxDeg so everything past that is just "max tilt"
+    const max = TUNE.tiltMaxDeg;
+    gx = Math.max(-max, Math.min(max, gx));
+    gy = Math.max(-max, Math.min(max, gy));
+
+    // normalize to -1..1
+    return { nx: gx / max, ny: gy / max };
+  }
+
+  // ========================================================================
+  // UPDATE
+  // ========================================================================
+  function update(dt) {
+    if (state !== STATE.PLAYING) return;
+
+    const { nx, ny } = currentTilt();
+
+    // Mass-scaled acceleration. Bigger droplets accelerate HARDER — the
+    // force amplifies with mass, making tilts at size into genuine commitments.
+    // Paired with mass-scaled friction below, this creates the "can't stop
+    // once moving" loop that is the core of the balance-game design.
+    const massRatio = player.volume / TUNE.startVolume;
+    const accelScale = Math.pow(massRatio, TUNE.massAccelBoost);
+    const ax = nx * TUNE.baseAccel * accelScale;
+    const ay = ny * TUNE.baseAccel * accelScale;
+
+    player.vx += ax * dt;
+    player.vy += ay * dt;
+
+    // Mass-scaled friction. Bigger drops coast longer — this is the engine
+    // of the balance-game design. Inverse drag scaling: as mass grows, the
+    // per-frame drag shrinks, so a large drop retains velocity far longer
+    // than a small one given the same release.
+    //
+    // base drag = 1 - TUNE.friction (e.g. 0.015 at friction=0.985)
+    // scaled drag = base drag * mass^(-frictionMassExp)
+    // effective friction = 1 - scaled drag
+    const baseDrag = 1 - TUNE.friction;
+    const scaledDrag = baseDrag * Math.pow(massRatio, -TUNE.frictionMassExp);
+    const effectiveFriction = Math.max(0, 1 - scaledDrag);
+    const fricFactor = Math.pow(effectiveFriction, dt * 60);
+    player.vx *= fricFactor;
+    player.vy *= fricFactor;
+
+    player.x += player.vx * dt;
+    player.y += player.vy * dt;
+
+    // Wobble physics. Model: a damped spring-mass where the "mass" is the
+    // wobble offset vector and the impulse comes from sudden velocity
+    // changes (braking, turning). The spring pulls it back to zero.
+    //
+    // Detect velocity delta this frame (as acceleration, not spring force —
+    // we want the drop's water to visually "slosh" in the opposite direction
+    // of deceleration, like liquid in a moving glass).
+    const dvx = player.vx - player.lastVX;
+    const dvy = player.vy - player.lastVY;
+    // Impulse is opposite to velocity change (conservation of momentum feel)
+    player.wobVX -= dvx * TUNE.wobImpulseScale * 60;  // *60 normalizes to per-second-ish
+    player.wobVY -= dvy * TUNE.wobImpulseScale * 60;
+
+    // Spring integration (semi-implicit Euler)
+    const springFx = -TUNE.wobSpring * player.wobX - TUNE.wobDamp * player.wobVX;
+    const springFy = -TUNE.wobSpring * player.wobY - TUNE.wobDamp * player.wobVY;
+    player.wobVX += springFx * dt;
+    player.wobVY += springFy * dt;
+    player.wobX += player.wobVX * dt;
+    player.wobY += player.wobVY * dt;
+
+    // Clamp wobble magnitude so huge impulses don't cause visual glitches
+    const wMag = Math.hypot(player.wobX, player.wobY);
+    if (wMag > TUNE.wobMaxAmp) {
+      player.wobX = (player.wobX / wMag) * TUNE.wobMaxAmp;
+      player.wobY = (player.wobY / wMag) * TUNE.wobMaxAmp;
+    }
+
+    player.lastVX = player.vx;
+    player.lastVY = player.vy;
+
+    // Game over — drop's center past the visible world edge by more than
+    // edgeBuffer. At zoom 1 this is the screen edge; zoomed out, it's the
+    // (larger) world edge. So the grace zone scales with the playfield.
+    const buf = TUNE.edgeBuffer;
+    const minX = worldMinX(), maxX = worldMaxX();
+    const minY = worldMinY(), maxY = worldMaxY();
+    if (player.x < minX - buf || player.x > maxX + buf ||
+        player.y < minY - buf || player.y > maxY + buf) {
+      triggerGameOver();
+      return;
+    }
+
+    // Collisions with targets
+    for (let i = targets.length - 1; i >= 0; i--) {
+      const t = targets[i];
+      const dx = t.x - player.x;
+      const dy = t.y - player.y;
+      const d = Math.hypot(dx, dy);
+      // Absorb when the player's leading edge overlaps the target center-ish.
+      // Using r + r*0.5 feels like "the target gets sucked in" rather than merely grazed.
+      if (d < player.r + t.r * 0.35) {
+        player.volume += t.volume;
+        player.r = deriveRadius(player.volume);
+        trueScore = player.volume;
+        targets.splice(i, 1);
+        spawnTarget(true);
+      }
+    }
+
+    // Live rebalance — if TUNE.targetCount / TUNE.microCount have been
+    // changed by the tuning sliders, reconcile the pools to match without
+    // requiring a replay. Pop excess from the end (cheap, doesn't disturb
+    // drops the player is currently engaging with near them).
+    while (targets.length > TUNE.targetCount) targets.pop();
+    while (targets.length < TUNE.targetCount) spawnTarget(true);
+    while (microDrops.length > TUNE.microCount) microDrops.pop();
+    while (microDrops.length < TUNE.microCount) {
+      microDrops.push(newMicroDrop(Math.random() * W, Math.random() * H));
+    }
+
+    // Target physics — each drop is now a mini physics object. Tilt pushes
+    // them (but less than the player), friction holds them back, and a
+    // stick threshold below which they don't move at all. Surface-tension
+    // analogy: big drops resist motion more than small ones.
+    const tiltMag = Math.hypot(nx, ny);
+    const targetBuf = TUNE.edgeBuffer;   // reuse player's buffer for "gone" detection
+    for (let i = targets.length - 1; i >= 0; i--) {
+      const t = targets[i];
+
+      // Per-target stick threshold — scales up with target volume.
+      const tMassRatio = t.volume / TUNE.minVolume;  // 1.0 at smallest, grows from there
+      const stickThresh = TUNE.targetStickTilt *
+                          Math.pow(tMassRatio, TUNE.targetStickTiltMassExp);
+
+      // Decide if this target should receive tilt force.
+      // Condition: either already moving (inertia keeps it going) OR tilt
+      // exceeds its surface-tension stick threshold.
+      const moving = (Math.abs(t.vx) + Math.abs(t.vy)) > TUNE.targetStickVel;
+      const unstuck = moving || tiltMag > stickThresh;
+
+      if (unstuck) {
+        // Apply tilt acceleration, scaled down from player's and softened
+        // by target's mass (bigger targets less responsive).
+        const tAccelScale = TUNE.targetTiltScale *
+                            Math.pow(tMassRatio, -TUNE.targetAccelMassExp);
+        t.vx += nx * TUNE.baseAccel * tAccelScale * dt;
+        t.vy += ny * TUNE.baseAccel * tAccelScale * dt;
+
+        // Chaos jitter — random per-frame impulse simulating real water's
+        // messy micro-physics. Drops wobble unpredictably, paths diverge,
+        // eventually they collide and merge instead of drifting in parallel.
+        // Only applied to moving drops so stuck ones sit perfectly still.
+        if (TUNE.targetJitter > 0) {
+          const jitterMag = TUNE.baseAccel * TUNE.targetJitter * tAccelScale;
+          const angle = Math.random() * Math.PI * 2;
+          t.vx += Math.cos(angle) * jitterMag * dt;
+          t.vy += Math.sin(angle) * jitterMag * dt;
+        }
+
+        // Friction — targets have more drag than player (surface tension)
+        const tFric = Math.pow(TUNE.targetFriction, dt * 60);
+        t.vx *= tFric;
+        t.vy *= tFric;
+
+        t.x += t.vx * dt;
+        t.y += t.vy * dt;
+
+        // Re-stick if slowed enough AND tilt is below threshold.
+        if (!moving && tiltMag <= stickThresh) {
+          // (The condition above lets this branch trigger after a drop
+          // has decelerated below targetStickVel while tilt is low.)
+          t.vx = 0;
+          t.vy = 0;
+        }
+      } else {
+        // Fully stuck — ensure velocity is truly zero to prevent drift.
+        t.vx = 0;
+        t.vy = 0;
+      }
+
+      // Respawn if the target has drifted past the buffer — "the old drop
+      // ran off the screen, a new one landed somewhere else."
+      const tMinX = worldMinX(), tMaxX = worldMaxX();
+      const tMinY = worldMinY(), tMaxY = worldMaxY();
+      if (t.x < tMinX - targetBuf || t.x > tMaxX + targetBuf ||
+          t.y < tMinY - targetBuf || t.y > tMaxY + targetBuf) {
+        targets.splice(i, 1);
+        spawnTarget(true);
+      }
+    }
+
+    // Target-target merging — when two drops touch, they coalesce. The
+    // heavier drop absorbs the lighter one at a momentum-conserving
+    // position, then inherits a combined velocity. Iterate backwards so
+    // splicing doesn't invalidate indices.
+    for (let i = targets.length - 1; i >= 0; i--) {
+      const a = targets[i];
+      if (!a) continue;
+      for (let j = i - 1; j >= 0; j--) {
+        const b = targets[j];
+        if (!b) continue;
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        const d = Math.hypot(dx, dy);
+        // Merge when center distance is less than ~70% of summed radii —
+        // same threshold style as player absorb, feels like "they ran into
+        // each other and became one."
+        if (d < (a.r + b.r) * 0.7) {
+          // Pick the bigger drop as the survivor (b is lower index; could
+          // be either). Merge a into b (or vice versa based on mass).
+          const keeper = a.volume >= b.volume ? a : b;
+          const absorbed = a.volume >= b.volume ? b : a;
+          // Momentum-conserving merge
+          const totalVol = keeper.volume + absorbed.volume;
+          keeper.x = (keeper.x * keeper.volume + absorbed.x * absorbed.volume) / totalVol;
+          keeper.y = (keeper.y * keeper.volume + absorbed.y * absorbed.volume) / totalVol;
+          keeper.vx = (keeper.vx * keeper.volume + absorbed.vx * absorbed.volume) / totalVol;
+          keeper.vy = (keeper.vy * keeper.volume + absorbed.vy * absorbed.volume) / totalVol;
+          keeper.volume = totalVol;
+          keeper.r = deriveRadius(totalVol);
+          // Remove the absorbed one. Spawn a new drop to maintain density.
+          const absorbedIdx = (absorbed === a) ? i : j;
+          targets.splice(absorbedIdx, 1);
+          spawnTarget(true);
+          // After splicing, current a/b indices are unreliable; break out
+          // and let next outer-loop iteration handle further merges.
+          break;
+        }
+      }
+    }
+
+    // Micro drops — clearing detection (from player + moving targets),
+    // volume transfer to the player on clear, timed respawn, and a
+    // continuous sprinkle that makes it feel like it's still raining.
+    const nowMs = performance.now();
+    // Clearers = player + targets. Any drop close to any of these gets
+    // absorbed. Only the player gains volume from it (targets consume
+    // visually but don't grow — would create runaway mass otherwise).
+    const clearers = [player, ...targets];
+
+    for (const m of microDrops) {
+      if (m.clearedAt === 0) {
+        // Visible — check overlap with any clearer.
+        for (let c = 0; c < clearers.length; c++) {
+          const clearer = clearers[c];
+          const dx = m.x - clearer.x;
+          const dy = m.y - clearer.y;
+          const cR = clearer.r + 4;
+          if (dx * dx + dy * dy < cR * cR) {
+            m.clearedAt = nowMs;
+            m.respawnAt = nowMs + MICRO_RESPAWN_MS + Math.random() * MICRO_RESPAWN_JITTER;
+            // Only the player gains volume (clearer at index 0 is player).
+            if (c === 0) {
+              player.volume += m.vol;
+              player.r = deriveRadius(player.volume);
+              trueScore = player.volume;
+            }
+            break;
+          }
+        }
+      } else if (nowMs >= m.respawnAt) {
+        // Ready to respawn — skip if a clearer is still on this spot.
+        let blocked = false;
+        for (const clearer of clearers) {
+          const dx = m.x - clearer.x;
+          const dy = m.y - clearer.y;
+          const cR = clearer.r + 4;
+          if (dx * dx + dy * dy < cR * cR) {
+            blocked = true;
+            break;
+          }
+        }
+        if (!blocked) {
+          m.clearedAt = 0;
+          m.respawnAt = 0;
+          m.x += (Math.random() - 0.5) * 30;
+          m.y += (Math.random() - 0.5) * 30;
+          const mMinX = worldMinX(), mMaxX = worldMaxX();
+          const mMinY = worldMinY(), mMaxY = worldMaxY();
+          const mw = mMaxX - mMinX, mh = mMaxY - mMinY;
+          if (m.x < mMinX) m.x += mw;
+          if (m.x > mMaxX) m.x -= mw;
+          if (m.y < mMinY) m.y += mh;
+          if (m.y > mMaxY) m.y -= mh;
+          m.r = MICRO_MIN_R + Math.random() * (MICRO_MAX_R - MICRO_MIN_R);
+          m.vol = MICRO_MIN_VOL + Math.random() * (MICRO_MAX_VOL - MICRO_MIN_VOL);
+        }
+      }
+    }
+
+    // Continuous sprinkle — fresh rain at a steady rate, regardless of
+    // clears. Creates the "still raining" feel even when standing still.
+    // Implemented by pulling a cleared drop from the pool and reactivating
+    // it at a fresh location. If no cleared drops exist, nothing spawns
+    // (the field is naturally capped at MICRO_COUNT).
+    microSprinkleAccum += dt * MICRO_SPRINKLE_PER_SEC;
+    while (microSprinkleAccum >= 1) {
+      microSprinkleAccum -= 1;
+      const start = Math.floor(Math.random() * microDrops.length);
+      for (let k = 0; k < microDrops.length; k++) {
+        const idx = (start + k) % microDrops.length;
+        const m = microDrops[idx];
+        if (m.clearedAt !== 0) {
+          const sMinX = worldMinX(), sRangeX = worldMaxX() - sMinX;
+          const sMinY = worldMinY(), sRangeY = worldMaxY() - sMinY;
+          m.x = sMinX + Math.random() * sRangeX;
+          m.y = sMinY + Math.random() * sRangeY;
+          m.r = MICRO_MIN_R + Math.random() * (MICRO_MAX_R - MICRO_MIN_R);
+          m.vol = MICRO_MIN_VOL + Math.random() * (MICRO_MAX_VOL - MICRO_MIN_VOL);
+          m.clearedAt = 0;
+          m.respawnAt = 0;
+          break;
+        }
+      }
+    }
+
+    // Score display lerp
+    const lerpK = 1 - Math.exp(-TUNE.scoreLerpHz * dt);
+    displayedScore += (trueScore - displayedScore) * lerpK;
+    updateScoreHUD();
+  }
+
+  const scoreEl = document.getElementById('score');
+  function updateScoreHUD(force) {
+    scoreEl.textContent = displayedScore.toFixed(1);
+  }
+
+  // ========================================================================
+  // RENDER
+  // ========================================================================
+  //
+  // Model: drops are DARK LENSES on a live animated background, with bright
+  // rim arcs on the upper edge (ambient top-light grazing the curve) and a
+  // small randomized pinpoint specular. Each drop refracts the background
+  // by sampling it, magnified and offset, clipped to the drop's shape.
+  //
+  // Layers per drop (bottom to top):
+  //   1. Soft shadow underneath (drop sits in a wet-ring halo)
+  //   2. Refraction: magnified/offset background sample, clipped to shape
+  //   3. Body tint: darkens toward rim, plus inner lower-shadow for dome feel
+  //   4. Bright rim arc on upper edge (linear-gradient-masked stroke)
+  //   5. Tiny pinpoint specular at a per-drop randomized position
+
+  // ---------- Animated background ----------
+  // Drawn live every frame to a dedicated offscreen canvas, which the drops
+  // then sample for refraction. Drawing to offscreen first (instead of the
+  // main canvas directly) lets us blit it once as the main background AND
+  // sample it per drop without re-generating gradients each time.
+  const bgCanvas = document.createElement('canvas');
+  const bgCtx = bgCanvas.getContext('2d');
+  // Render background at 0.6x resolution — imperceptible on a phone display,
+  // saves significant fill time when we have 10+ drops sampling it.
+  const BG_RES = 0.6;
+
+  function resizeBg() {
+    bgCanvas.width = Math.floor(W * BG_RES * DPR);
+    bgCanvas.height = Math.floor(H * BG_RES * DPR);
+  }
+  resizeBg();
+  window.addEventListener('resize', () => setTimeout(resizeBg, 50));
+
+  // Four slow-drifting colored blobs. Hues chosen to feel like phone-screen
+  // wallpaper reflections — blues, violets, a touch of teal.
+  const bgBlobs = [
+    { hue: 215, sat: 60, lig: 34, bx: 0.22, by: 0.18, ax: 0.10, ay: 0.07, sp: 0.05, ph: 0.0 },
+    { hue: 268, sat: 50, lig: 28, bx: 0.78, by: 0.30, ax: 0.12, ay: 0.09, sp: 0.06, ph: 1.7 },
+    { hue: 195, sat: 65, lig: 32, bx: 0.50, by: 0.82, ax: 0.14, ay: 0.07, sp: 0.04, ph: 3.1 },
+    { hue: 290, sat: 45, lig: 24, bx: 0.15, by: 0.92, ax: 0.09, ay: 0.06, sp: 0.07, ph: 4.4 },
+  ];
+
+  function renderBackground(tSec) {
+    const bw = bgCanvas.width;
+    const bh = bgCanvas.height;
+
+    // Inky base. The reference image has this deep near-black depth.
+    bgCtx.fillStyle = '#050810';
+    bgCtx.fillRect(0, 0, bw, bh);
+
+    // Additive blending on the blobs so overlaps build into brighter zones.
+    bgCtx.globalCompositeOperation = 'lighter';
+    for (const b of bgBlobs) {
+      const t = tSec * b.sp + b.ph;
+      const cx = (b.bx + Math.sin(t) * b.ax) * bw;
+      const cy = (b.by + Math.cos(t * 0.8) * b.ay) * bh;
+      const r = Math.max(bw, bh) * 0.55;
+      const g = bgCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      g.addColorStop(0, `hsla(${b.hue}, ${b.sat}%, ${b.lig}%, 0.9)`);
+      g.addColorStop(0.5, `hsla(${b.hue}, ${b.sat}%, ${b.lig * 0.5}%, 0.4)`);
+      g.addColorStop(1, `hsla(${b.hue}, ${b.sat}%, ${b.lig * 0.2}%, 0)`);
+      bgCtx.fillStyle = g;
+      bgCtx.fillRect(0, 0, bw, bh);
+    }
+    bgCtx.globalCompositeOperation = 'source-over';
+
+    // Vignette — darker edges anchor the scene and make edge-drops feel heavier.
+    const vign = bgCtx.createRadialGradient(bw * 0.5, bh * 0.5, bw * 0.3, bw * 0.5, bh * 0.5, Math.max(bw, bh) * 0.75);
+    vign.addColorStop(0, 'rgba(0,0,0,0)');
+    vign.addColorStop(1, 'rgba(0,0,0,0.5)');
+    bgCtx.fillStyle = vign;
+    bgCtx.fillRect(0, 0, bw, bh);
+  }
+
+  // ---------- Drop shape ----------
+  //
+  // Key principle: the shape perturbation is in WORLD SPACE, not drop-local
+  // space. This means as the drop moves, different parts of its circumference
+  // face the direction of travel — the shape doesn't rotate with the drop.
+  // (A real drop has no "front"; it's an object being deformed by forces.)
+  //
+  // The path builder takes:
+  //   r        — base radius
+  //   sig      — shape signature (the lumpy circumference)
+  //   stretch  — 0..~0.3 ellipse factor from velocity (directional)
+  //   stretchAngle — world-space direction of stretch
+  //   wobble   — {x, y} world-space offset oscillation for jiggle (applied
+  //              as a directional scaling that oscillates over time)
+  //
+  // We build the path as points directly in world-offset coordinates
+  // (relative to drop center). Then when drawing, we only TRANSLATE to
+  // (cx, cy) — no rotate, no scale. All deformation lives in the points.
+  function buildDropPath(r, sig, stretch, stretchAngle, wobbleX, wobbleY) {
+    const path = new Path2D();
+    const N = Math.min(64, Math.max(28, Math.floor(r * 0.7)));
+
+    // Precompute stretch matrix components. Stretch elongates along the
+    // stretchAngle axis and squashes perpendicular, preserving approx area.
+    const cosA = Math.cos(stretchAngle);
+    const sinA = Math.sin(stretchAngle);
+    const sx = 1 + stretch;
+    const sy = 1 / (1 + stretch * 0.6);
+
+    for (let i = 0; i <= N; i++) {
+      const theta = (i / N) * Math.PI * 2;
+      // World-space perturbation: theta is the angle in world coords, not
+      // in drop-local coords. The shape signature is fixed to world orientation.
+      const perturb =
+        sig.a1 * Math.cos(3 * theta + sig.p1) +
+        sig.a2 * Math.cos(4 * theta + sig.p2) +
+        sig.a3 * Math.cos(5 * theta + sig.p3);
+      const rr = r * (1 + perturb);
+
+      // Base point on the perturbed circle (world coords relative to center)
+      let px = Math.cos(theta) * rr;
+      let py = Math.sin(theta) * rr;
+
+      // Apply velocity stretch: rotate into stretch frame, scale, rotate back.
+      // Equivalent to a single affine transform; inlined for speed.
+      const localX =  px * cosA + py * sinA;
+      const localY = -px * sinA + py * cosA;
+      const stretchedX = localX * sx;
+      const stretchedY = localY * sy;
+      px = stretchedX * cosA - stretchedY * sinA;
+      py = stretchedX * sinA + stretchedY * cosA;
+
+      // Wobble: a time-varying directional deformation. wobbleX/Y are
+      // world-space "push" vectors, applied as a small stretch along that
+      // direction. Scales with distance from center, so the whole drop
+      // oscillates rather than just one side.
+      if (wobbleX !== 0 || wobbleY !== 0) {
+        const wMag = Math.hypot(wobbleX, wobbleY);
+        if (wMag > 0.001) {
+          const wx = wobbleX / wMag;
+          const wy = wobbleY / wMag;
+          // Component of this circumference point along the wobble axis
+          const along = px * wx + py * wy;
+          // Push outward along wobble axis, proportional to wMag.
+          px += wx * along * wMag * 0.35;
+          py += wy * along * wMag * 0.35;
+        }
+      }
+
+      if (i === 0) path.moveTo(px, py);
+      else path.lineTo(px, py);
+    }
+    path.closePath();
+    return path;
+  }
+
+  // amplitude = total max perturbation as a fraction of radius.
+  function makeShapeSig(amplitude) {
+    return {
+      a1: (0.5 + Math.random() * 0.5) * amplitude * 0.55,
+      a2: (0.5 + Math.random() * 0.5) * amplitude * 0.30,
+      a3: (0.5 + Math.random() * 0.5) * amplitude * 0.15,
+      p1: Math.random() * Math.PI * 2,
+      p2: Math.random() * Math.PI * 2,
+      p3: Math.random() * Math.PI * 2,
+      // Per-drop pinpoint specular position — in WORLD-space normalized
+      // coords, so it stays fixed in the world regardless of drop motion.
+      // Not biased anymore — true ambient light, no "upper" direction.
+      specX: (Math.random() - 0.5) * 1.3,
+      specY: (Math.random() - 0.5) * 1.3,
+    };
+  }
+
+  // ---------- Drop renderer ----------
+  // cx, cy: center in main-canvas CSS pixels (world coords)
+  // r: radius in CSS pixels
+  // stretch: 0..~0.3 ellipse factor (velocity-driven)
+  // stretchAngle: world-space direction of stretch
+  // wobbleX, wobbleY: world-space wobble push vector (for jiggle on braking)
+  // sig: shape signature from makeShapeSig
+  // appear: 0..1 splat-in scale
+  //
+  // Lighting model: NO directional light. Drops have uniform radial darkening
+  // toward silhouette (genuine optics — a glass bead darkens at its edge
+  // regardless of light angle), plus a small per-drop pinpoint specular at
+  // a WORLD-FIXED position (light glints that don't rotate with motion).
+  function drawDroplet(cx, cy, r, stretch, stretchAngle, wobbleX, wobbleY, sig, appear) {
+    r *= appear;
+    if (r < 0.5) return;
+
+    // --- 1. Shadow underneath — drawn in world coords. Does NOT deform with
+    //        the drop shape because the shadow is on the surface below, not
+    //        on the drop. Small offset downward (ambient soft shadow).
+    const shR = r * 1.25;
+    const shadowGrad = ctx.createRadialGradient(cx, cy + r * 0.08, r * 0.6, cx, cy + r * 0.08, shR);
+    shadowGrad.addColorStop(0, 'rgba(0, 3, 10, 0.42)');
+    shadowGrad.addColorStop(0.7, 'rgba(0, 3, 10, 0.15)');
+    shadowGrad.addColorStop(1, 'rgba(0, 3, 10, 0)');
+    ctx.fillStyle = shadowGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy + r * 0.08, shR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Path is built in world-relative coords (origin = drop center).
+    // All deformation (shape, stretch, wobble) is baked into the path points.
+    // We only TRANSLATE when drawing — no rotate, no scale.
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    const path = buildDropPath(r, sig, stretch, stretchAngle, wobbleX, wobbleY);
+
+    // --- 2. Refraction. Clip to drop shape, blit background magnified/shifted.
+    // --- 2. Refraction. Clip to drop shape, blit background magnified/shifted.
+    //        We're inside ctx.translate(cx, cy), so drop-local origin = (0,0).
+    ctx.save();
+    ctx.clip(path);
+
+    const MAG = 1.20;
+    // Edge-parallax: drops farther from screen center warp the background more.
+    const ncx = cx / W - 0.5;
+    const ncy = cy / H - 0.5;
+    const offX = -ncx * r * 0.55;
+    const offY = -ncy * r * 0.55;
+    const drawW = W * MAG;
+    const drawH = H * MAG;
+    // drawImage top-left in drop-local coords (we're translated to (cx,cy)).
+    const dx = -cx * MAG + offX;
+    const dy = -cy * MAG + offY;
+    ctx.drawImage(bgCanvas, dx, dy, drawW, drawH);
+
+    // --- 3. Body tint — uniform radial darkening toward silhouette.
+    //        This is genuine optics: a transparent dome looks darker at its
+    //        edge because light travels through more medium there (longer path).
+    //        Applied as a radial gradient centered on the drop, from clear
+    //        at center to dark at radius.
+    const bodyGrad = ctx.createRadialGradient(0, 0, r * 0.15, 0, 0, r * 1.1);
+    bodyGrad.addColorStop(0, 'rgba(3, 8, 20, 0)');
+    bodyGrad.addColorStop(0.5, 'rgba(3, 8, 20, 0.10)');
+    bodyGrad.addColorStop(0.80, 'rgba(2, 5, 15, 0.40)');
+    bodyGrad.addColorStop(1, 'rgba(0, 1, 8, 0.75)');
+    ctx.fillStyle = bodyGrad;
+    ctx.fillRect(-r * 1.5, -r * 1.5, r * 3.0, r * 3.0);
+
+    ctx.restore(); // end clip
+
+    // --- 4. Dark silhouette rim — thin dark stroke on the drop outline.
+    //        Non-directional. This gives the "pinched by surface tension"
+    //        look without implying a light source.
+    ctx.strokeStyle = 'rgba(2, 6, 18, 0.55)';
+    ctx.lineWidth = Math.max(0.8, r * 0.035);
+    ctx.lineJoin = 'round';
+    ctx.stroke(path);
+
+    // --- 5. Pinpoint specular — tiny sharp dot at a per-drop WORLD-SPACE
+    //        random position. Because specX/specY are in world coords
+    //        (not drop-local), they stay fixed relative to the world as the
+    //        drop moves — consistent with ambient light glints.
+    //        We draw it clipped to the drop shape so it doesn't poke outside
+    //        when the drop stretches past it.
+    ctx.save();
+    ctx.clip(path);
+    const pinX = sig.specX * r;
+    const pinY = sig.specY * r;
+    const pinR = r * 0.09;
+    const pinGrad = ctx.createRadialGradient(pinX, pinY, 0, pinX, pinY, pinR);
+    pinGrad.addColorStop(0, 'rgba(255, 255, 255, 0.75)');
+    pinGrad.addColorStop(0.5, 'rgba(240, 250, 255, 0.28)');
+    pinGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = pinGrad;
+    ctx.beginPath();
+    ctx.arc(pinX, pinY, pinR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  // ---------- Frame ----------
+  function render() {
+    const tSec = performance.now() / 1000;
+
+    // 1. Regenerate background each frame (live, not cached). Background
+    //    is NOT zoomed — it always fills the full screen regardless of
+    //    world zoom level. Only the game-drop layer scales.
+    renderBackground(tSec);
+
+    // 2. Blit bg to main canvas as the scene backdrop.
+    ctx.drawImage(bgCanvas, 0, 0, W, H);
+
+    // Don't draw drops until the game has been started at least once.
+    // Before resetGame() runs, player.sig is null and targets is empty.
+    if (state === STATE.READY) return;
+
+    // 2b. Micro drops — atmospheric layer. Rendered using the same
+    // drawDroplet() path as game drops for visual consistency (refraction,
+    // rim, pinpoint specular), just at tiny radius and with reduced alpha
+    // so they read as "background wetness" rather than game elements.
+    ctx.save();
+    ctx.globalAlpha = MICRO_ALPHA;
+    for (const m of microDrops) {
+      if (m.clearedAt !== 0) continue;
+      drawDroplet(m.x, m.y, m.r, 0, 0, 0, 0, m.sig, 1);
+    }
+    ctx.restore();
+
+    // 3. Draw targets with splat-in animation. Static drops have no stretch
+    //    and no wobble — they're at rest.
+    const now = performance.now();
+    for (const t of targets) {
+      const age = (now - t.spawnT) / 1000;
+      let appear;
+      if (age < 0.22) {
+        const k = age / 0.22;
+        // Overshoot-and-settle
+        appear = 1 + 0.35 * Math.sin(k * Math.PI) - (1 - k) * 0.6;
+        appear = Math.max(0, appear);
+      } else {
+        appear = 1;
+      }
+      drawDroplet(t.x, t.y, t.r, 0, 0, 0, 0, t.sig, appear);
+    }
+
+    // 4. Draw player drop with velocity-based stretch and wobble.
+    const speed = Math.hypot(player.vx, player.vy);
+    const stretch = Math.min(TUNE.stretchMax, (speed / TUNE.stretchVelRef) * TUNE.stretchMax * 1.4);
+    const stretchAngle = Math.atan2(player.vy, player.vx);
+    drawDroplet(player.x, player.y, player.r, stretch, stretchAngle,
+                player.wobX, player.wobY, player.sig, 1);
+  }
+
+  // ========================================================================
+  // GAME OVER
+  // ========================================================================
+  const overOverlay = document.getElementById('over');
+  const finalScoreEl = document.getElementById('finalScore');
+
+  function triggerGameOver() {
+    state = STATE.OVER;
+    finalScoreEl.textContent = trueScore.toFixed(1);
+    overOverlay.classList.remove('hidden');
+  }
+
+  // ========================================================================
+  // MAIN LOOP
+  // ========================================================================
+  function loop(t) {
+    const dtRaw = (t - lastT) / 1000;
+    lastT = t;
+    // Clamp dt to avoid huge jumps when tab was backgrounded
+    const dt = Math.min(0.05, Math.max(0, dtRaw));
+    update(dt);
+    render();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame((t) => { lastT = t; loop(t); });
+
+
+  // ========================================================================
+  // UI WIRING
+  // ========================================================================
+  const startOverlay = document.getElementById('start');
+  const startBtn = document.getElementById('startBtn');
+  const replayBtn = document.getElementById('replayBtn');
+
+  // Enter fullscreen and lock portrait orientation, silently. If either
+  // step fails (unsupported browser, user denied, etc.), we continue
+  // anyway — the game still works, just without rotation protection.
+  async function enterFullscreenAndLock() {
+    try {
+      // Request fullscreen on the document element. Must be called from
+      // a user gesture (the tap handler calling us satisfies this).
+      const el = document.documentElement;
+      const req = el.requestFullscreen || el.webkitRequestFullscreen ||
+                  el.mozRequestFullScreen || el.msRequestFullscreen;
+      if (req) {
+        await req.call(el).catch(() => {});  // ignore rejection, keep going
+      }
+    } catch (e) { /* older browsers throw synchronously; no-op */ }
+
+    try {
+      // Lock orientation to portrait. Only works inside fullscreen on most
+      // browsers. Silently fails on iOS < 16.4 and some others.
+      if (screen.orientation && screen.orientation.lock) {
+        await screen.orientation.lock('portrait').catch(() => {});
+      }
+    } catch (e) { /* no-op */ }
+  }
+
+  async function beginPlay() {
+    // Fire off fullscreen + orientation lock in parallel with gyro permission.
+    // Don't await fullscreen separately — it either works silently or not.
+    enterFullscreenAndLock();
+
+    const ok = await requestOrientationPermission();
+    if (!ok) return;
+
+    // Give the sensor a beat to produce a reading, then silently calibrate.
+    setTimeout(() => {
+      calBeta = rawBeta;
+      calGamma = rawGamma;
+      startOverlay.classList.add('hidden');
+      resetGame();
+      state = STATE.PLAYING;
+    }, 150);
+  }
+
+  startBtn.addEventListener('click', beginPlay);
+  replayBtn.addEventListener('click', () => {
+    // Re-acquire fullscreen + portrait lock on replay. Fullscreen may have
+    // been dropped between runs (tab switch, notification pull, etc.), which
+    // also releases the orientation lock. Calling this from a user-gesture
+    // handler is our only chance to restore both.
+    enterFullscreenAndLock();
+    // Re-calibrate on replay too — player may be holding phone differently
+    calBeta = rawBeta;
+    calGamma = rawGamma;
+    overOverlay.classList.add('hidden');
+    resetGame();
+    state = STATE.PLAYING;
+  });
+
+  // Dev fallback — desktop testing without a gyroscope (arrow keys / pointer)
+  // Only active if no orientation events come in within 2 seconds of play.
+  let devFallback = false;
+  setTimeout(() => {
+    if (!haveOrientation && state !== STATE.READY) {
+      enableDevFallback();
+    }
+  }, 2000);
+  function enableDevFallback() {
+    devFallback = true;
+    const keys = {};
+    window.addEventListener('keydown', e => { keys[e.key] = true; });
+    window.addEventListener('keyup', e => { keys[e.key] = false; });
+    // Synthesize orientation from arrow keys
+    setInterval(() => {
+      if (!devFallback) return;
+      let gx = 0, gy = 0;
+      if (keys.ArrowLeft) gx -= 25;
+      if (keys.ArrowRight) gx += 25;
+      if (keys.ArrowUp) gy -= 25;
+      if (keys.ArrowDown) gy += 25;
+      rawGamma = gx;
+      rawBeta = gy;
+    }, 16);
+  }
+
+  // Prevent pull-to-refresh and scroll bounce
+  document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
+})();
+</script>
+</body>
+</html>
